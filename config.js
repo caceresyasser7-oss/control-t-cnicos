@@ -3,5 +3,5 @@
 // NUNCA pongas aquí la clave secreta (sb_secret_...).
 window.SUPA = {
   url: "https://oxpwpfyffhvvgglsgtfs.supabase.co",
-  key: "sb_publishable_hHv2N7hwLTPItS60bmzzaQ_Ak42lKcl"
+  key: "sb_publishable_co5b5NEKBSZAuXRP13I9nw_X-T7znTu"
 };
