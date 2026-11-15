@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.79.0/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<title>Control de Técnicos de Taller</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: tablero de taller — barra lateral fija con módulos, área de trabajo con tarjetas de datos y tablas densas */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --surface-2:#f5f7f9; --line:#d8dee5; --line-strong:#b9c3ce;
+  --ink:#16202a; --ink-2:#4a5866; --ink-3:#74818e;
+  --accent:#1d5fa8; --accent-ink:#ffffff; --accent-soft:#e3edf8;
+  --side:#1b2733; --side-ink:#d6dee6; --side-ink-2:#8a9aab; --side-active:#2a3a4a;
+  --ok:#1f8a4c; --ok-soft:#e2f4ea; --warn:#b7791f; --warn-soft:#fbf0dc; --bad:#c2372f; --bad-soft:#fbe5e3; --info:#5b5fc7; --info-soft:#ebebfa;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10161c; --surface:#18212a; --surface-2:#1e2832; --line:#2b3743; --line-strong:#3c4a58;
+  --ink:#e6ebf0; --ink-2:#a9b5c1; --ink-3:#7d8b99;
+  --accent:#5c9be0; --accent-ink:#0c1620; --accent-soft:#1c2f44;
+  --side:#0b1015; --side-ink:#d6dee6; --side-ink-2:#7f8e9d; --side-active:#1c2834;
+  --ok:#4cc27f; --ok-soft:#173326; --warn:#e0a84a; --warn-soft:#3a2d16; --bad:#ef6b62; --bad-soft:#3d1c1a; --info:#9a9df0; --info-soft:#262747;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10161c; --surface:#18212a; --surface-2:#1e2832; --line:#2b3743; --line-strong:#3c4a58;
+  --ink:#e6ebf0; --ink-2:#a9b5c1; --ink-3:#7d8b99;
+  --accent:#5c9be0; --accent-ink:#0c1620; --accent-soft:#1c2f44;
+  --side:#0b1015; --side-ink:#d6dee6; --side-ink-2:#7f8e9d; --side-active:#1c2834;
+  --ok:#4cc27f; --ok-soft:#173326; --warn:#e0a84a; --warn-soft:#3a2d16; --bad:#ef6b62; --bad-soft:#3d1c1a; --info:#9a9df0; --info-soft:#262747;
+  color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;letter-spacing:.01em;margin:0;text-wrap:balance}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
+.side{background:var(--side);color:var(--side-ink);padding:20px 12px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;overflow:auto;padding-left:max(12px,env(safe-area-inset-left,0px))}
+.brand{display:flex;gap:10px;align-items:center;padding:0 8px}
+.brand-mark{width:34px;height:34px;border-radius:6px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);flex:none;overflow:hidden}
+.brand-mark img{width:100%;height:100%;object-fit:contain;background:#fff}
+.brand-name{font-family:var(--font-display);font-size:16px;overflow-wrap:break-word;font-weight:700;line-height:1.05;text-transform:uppercase;letter-spacing:.02em}
+.brand-sub{font-size:12px;color:var(--side-ink-2)}
+.logos{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border-radius:6px;padding:8px 10px}
+.logos img{display:block;height:auto}
+.logos .l-nimac{width:62%}.logos .l-foton{width:24%}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;color:var(--side-ink);text-decoration:none;font-weight:500;font-size:14.5px}
+.nav a:hover{background:var(--side-active)}
+.nav a.active{background:var(--side-active);box-shadow:inset 3px 0 0 var(--accent)}
+.nav svg{width:18px;height:18px;flex:none;opacity:.85}
+.nav .num{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--side-ink-2)}
+.side-foot{margin-top:auto;font-size:12px;color:var(--side-ink-2);padding:0 8px;display:flex;flex-direction:column;gap:6px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px}
+.dot.local{background:var(--warn)}
+main{min-width:0;padding-block:22px 48px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.head h1{font-size:30px;text-transform:uppercase;letter-spacing:.03em}
+.head p{margin:2px 0 0;color:var(--ink-2)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--surface);padding:7px 12px;border-radius:var(--r);cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.sm{padding:4px 8px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn svg{width:16px;height:16px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:6px 12px;cursor:pointer;font-weight:600;font-size:13.5px;color:var(--ink-2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent-soft);color:var(--accent)}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);padding:7px 9px;min-width:0}
+textarea{width:100%;min-height:80px;resize:vertical}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.panel h2{font-size:18px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;color:var(--ink-2)}
+.panel h2 small{font-family:var(--font-body);text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink-3);font-size:13px;margin-left:6px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.kpi{background:var(--surface);padding:14px 16px;min-width:0}
+.kpi .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:600}
+.kpi .val{font-family:var(--font-display);font-size:34px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .val small{font-size:18px;color:var(--ink-3);margin-left:2px}
+.kpi .sub{font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi .val.name{font-size:24px;padding-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;background:var(--surface-2);white-space:nowrap;position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:var(--surface-2)}
+.ot{font-family:var(--font-mono);font-size:12.5px;font-weight:500;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill.info{background:var(--info-soft);color:var(--info);border-color:transparent}
+.pill.acc{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:12px;font-weight:600;border:1px solid var(--line-strong);color:var(--ink-2);white-space:nowrap}
+.muted{color:var(--ink-3)}
+.bar{height:8px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;min-width:70px}
+.bar>i{display:block;height:100%;background:var(--accent)}
+.bar>i.warn{background:var(--warn)}.bar>i.bad{background:var(--bad)}.bar>i.low{background:var(--info)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.filters input[type=search]{flex:1 1 220px}
+.empty{padding:28px;text-align:center;color:var(--ink-2)}
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);margin-bottom:14px;font-size:14px}
+/* calendario */
+.cal{display:grid;min-width:760px}
+.cal .ch{background:var(--surface-2);padding:8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.cal .ch.today{color:var(--accent)}
+.cal .rh{padding:8px 10px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;justify-content:center;gap:2px}
+.cal .rh b{font-weight:600}
+.cal .rh>span:last-child{font-size:12px;color:var(--ink-3)}
+.cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px;min-height:64px;display:flex;flex-direction:column;gap:4px;background:var(--surface);position:relative}
+.cell.sat{background:var(--bad-soft)}
+.cell.high{background:var(--warn-soft)}
+.cell.off{background:repeating-linear-gradient(135deg,var(--surface-2) 0 6px,var(--surface) 6px 12px)}
+.cell.over{outline:2px dashed var(--accent);outline-offset:-3px}
+.cell .h{position:absolute;right:5px;bottom:3px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.cell .libre{font-size:12px;color:var(--ink-3);font-style:italic}
+.chip{display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line-strong);border-left:4px solid var(--c,var(--accent));font-size:12px;cursor:grab;line-height:1.25;min-width:0}
+.chip:active{cursor:grabbing}
+.chip .ot{font-size:11.5px}
+.chip .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.chip.fin{opacity:.6}
+.chip.p-Alta{box-shadow:inset 0 -2px 0 var(--bad)}
+.month{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));min-width:780px}
+.month .md{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:104px;padding:4px;display:flex;flex-direction:column;gap:3px;background:var(--surface)}
+.month .md.out{background:var(--surface-2)}
+.month .md .dn{font-size:12px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.month .md.today .dn{color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--ink-2);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid var(--line-strong)}
+/* balanceo */
+.sug{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.sug+.sug{margin-top:8px}
+.sug .ic{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:700}
+.sug .ic.w{background:var(--warn-soft);color:var(--warn)}
+.sug p{margin:0}
+.sug .meta{font-size:13px;color:var(--ink-3);margin-top:2px}
+.sug .act{margin-left:auto}
+.alert{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:6px;font-size:14px}
+.alert.bad{background:var(--bad-soft)}.alert.warn{background:var(--warn-soft)}.alert.low{background:var(--info-soft)}
+.alert+.alert{margin-top:6px}
+.chart-box{position:relative;height:260px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form-grid .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--ink-3)}
+.field input,.field select{width:100%}
+.check{display:flex;gap:8px;align-items:center;font-size:14px}
+dialog{border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);color:var(--ink);padding:0;width:min(680px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+dialog::backdrop{background:rgba(10,16,22,.55)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg-h h3{font-size:21px;text-transform:uppercase;letter-spacing:.04em}
+.dlg-b{padding:16px 18px;overflow:auto}
+.dlg-f{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;font-size:14px;z-index:50;max-width:calc(100vw - 32px)}
+.rep-card{display:flex;flex-direction:column;gap:10px}
+.rep-card p{margin:0;color:var(--ink-2);font-size:14px}
+.rep-card .tools{margin-top:auto}
+.note{font-size:13px;color:var(--ink-3);margin-top:8px}
+.week-nav{display:flex;align-items:center;gap:6px}
+.week-nav .lbl{font-weight:600;min-width:170px;text-align:center;font-variant-numeric:tabular-nums}
+.tech-name{display:flex;align-items:center;gap:8px;font-weight:600}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex:none;background:var(--c)}
+.loading{padding:60px;text-align:center;color:var(--ink-2)}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:1fr 1fr}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;height:auto;flex-direction:row;align-items:center;padding:8px 0;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));gap:10px;overflow:visible}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--side)}
+  .brand-name,.brand-sub,.side-foot,.side .logos{display:none}
+  .m-logos{display:flex!important;margin-bottom:14px;max-width:340px}
+  .brand{padding:0}
+  .nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;min-width:0}
+  .nav a{white-space:nowrap;padding:7px 9px}
+  .nav a.active{box-shadow:inset 0 -3px 0 var(--accent)}
+  .nav .num{display:none}
+  .g2,.g3,.form-grid{grid-template-columns:1fr}
+  main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .head h1{font-size:25px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-mark" id="brandMark"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></div>
+      <div><div class="brand-name" id="brandName">Control de Taller</div><div class="brand-sub">Personal de mantenimiento</div></div>
+    </div>
+    <div class="logos" id="sideLogos"></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot"><div id="modeInfo"></div><div id="syncInfo"></div></div>
+  </aside>
+  <main id="main" data-x="1"><div class="loading">Cargando datos del taller…</div></main>
+</div>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"><div class="dlg-h"><h3 id="dlgTitle"></h3><button class="btn ghost" value="cancel" type="submit" aria-label="Cerrar">✕</button></div><div class="dlg-b" id="dlgBody"></div><div class="dlg-f" id="dlgFoot"></div></form></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+"use strict";
+const LOGOS={nimac:"data:image/png;base64,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",foton:"data:image/png;base64,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",dims:{nimac:[472,121],foton:[260,223]}};
+/* ================= Constantes ================= */
+const ESPECIALIDADES=["Mecánica General","Electricidad","Hidráulica","Soldadura","Diagnóstico"];
+const ESTADOS_TEC=["Disponible","En trabajo","Vacaciones","Permiso","Capacitación"];
+const ESTADOS_OT=["Pendiente","En Proceso","Finalizado"];
+const PRIORIDADES=["Alta","Media","Baja"];
+const DIAS=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const TECH_COLORS=["#2f6fbf","#d9822b","#2e9e6a","#a24bb8","#c94848","#1f9aa8","#8a7a2a","#5a64c9","#c25b8f","#4f8a2e"];
+const ausente=e=>e==="Vacaciones"||e==="Permiso";
+
+/* ================= Utilidades ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const pd=s=>{if(!s)return null;const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const mondayOf=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());const w=(x.getDay()+6)%7;return addDays(x,-w)};
+const today=()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
+const fmtD=s=>{const d=pd(s);return d?pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear():"—"};
+const fmtShort=d=>pad(d.getDate())+"/"+pad(d.getMonth()+1);
+const h1=n=>(Math.round(n*10)/10).toLocaleString("es",{maximumFractionDigits:1});
+const pct=n=>n==null||!isFinite(n)?"—":Math.round(n)+"%";
+const initials=n=>String(n||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+
+/* ================= Estado ================= */
+const S={tecnicos:[],ots:[],config:{},mode:"loading",ready:{t:false,o:false,c:false}};
+const UI={week:mondayOf(today()),calView:"semana",calDay:today().getDay()===0?addDays(today(),1):today(),calMonth:new Date(today().getFullYear(),today().getMonth(),1),calTech:"",period:"mes",periodRef:today(),
+  otFilter:{q:"",estado:"",prioridad:"",tec:""},tecFilter:{esp:"",est:""},drag:null};
+try{const v=localStorage.getItem("ct_ui");if(v){const o=JSON.parse(v);if(o.calView)UI.calView=o.calView;if(o.period)UI.period=o.period}}catch(e){}
+const saveUI=()=>{try{localStorage.setItem("ct_ui",JSON.stringify({calView:UI.calView,period:UI.period}))}catch(e){}};
+const techById=id=>S.tecnicos.find(t=>t.id===id);
+const techColor=id=>{const i=S.tecnicos.slice().sort((a,b)=>(a.creado||"").localeCompare(b.creado||"")||a.id.localeCompare(b.id)).findIndex(t=>t.id===id);return i<0?"#8a96a3":TECH_COLORS[i%TECH_COLORS.length]};
+const sortedTechs=()=>S.tecnicos.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+
+/* ================= Persistencia (db compartida o navegador) ================= */
+let DB=null;
+const LS_KEY="ct_data_v1";
+function lsLoad(){try{const v=localStorage.getItem(LS_KEY);return v?JSON.parse(v):null}catch(e){return null}}
+function lsSave(){try{localStorage.setItem(LS_KEY,JSON.stringify({tecnicos:S.tecnicos,ots:S.ots,config:S.config}))}catch(e){}}
+function strip(o){const c={...o};delete c.id;return JSON.parse(JSON.stringify(c))}
+async function dbTry(fn){try{return await fn()}catch(e){if(e&&e.code==="unavailable"){await new Promise(r=>setTimeout(r,400+Math.random()*600));return fn()}throw e}}
+function dbErr(e){const c=e&&e.code;toast(c==="invalid_argument"?"No tienes permiso para modificar estos datos.":c==="quota_exceeded"?"Se alcanzó el límite de almacenamiento.":"No se pudo guardar. Intenta de nuevo.");console.warn(e)}
+async function saveDoc(col,obj){
+  if(S.mode==="supa")return supaUpsert(col,[obj]);
+  if(S.mode==="db"){try{await dbTry(()=>DB.doc(col+"/"+obj.id).set(strip(obj)))}catch(e){dbErr(e);return false}return true}
+  const arr=S[col];const i=arr.findIndex(x=>x.id===obj.id);if(i>=0)arr[i]=obj;else arr.push(obj);lsSave();render();return true}
+async function delDoc(col,id){
+  if(S.mode==="supa"){const {error}=await SB.from(col).delete().eq("id",id);if(error){supaErr(error);return false}S[col]=S[col].filter(x=>x.id!==id);render();return true}
+  if(S.mode==="db"){try{await dbTry(()=>DB.doc(col+"/"+id).delete())}catch(e){dbErr(e);return false}return true}
+  S[col]=S[col].filter(x=>x.id!==id);lsSave();render();return true}
+async function saveConfig(cfg){
+  S.config=cfg;
+  if(S.mode==="supa"){const {error}=await SB.from("config").upsert({id:"empresa",data:JSON.parse(JSON.stringify(cfg)),updated_at:new Date().toISOString()});if(error)supaErr(error);render();return}
+  if(S.mode==="db"){try{await dbTry(()=>DB.doc("config/empresa").set(JSON.parse(JSON.stringify(cfg))))}catch(e){dbErr(e)}}else{lsSave();render()}}
+async function saveMany(items){if(S.mode==="supa"){const g={};for(const[c,o]of items)(g[c]=g[c]||[]).push(o);for(const c in g)for(let i=0;i<g[c].length;i+=200)if(!await supaUpsert(c,g[c].slice(i,i+200)))return;return}for(const[c,o]of items){if(S.mode==="db"){try{await dbTry(()=>DB.doc(c+"/"+o.id).set(strip(o)))}catch(e){dbErr(e);return}}else{const arr=S[c];const i=arr.findIndex(x=>x.id===o.id);if(i>=0)arr[i]=o;else arr.push(o)}}if(S.mode!=="db"){lsSave();render()}}
+async function deleteAll(){
+  if(S.mode==="supa"){for(const t of["tecnicos","ots"]){const {error}=await SB.from(t).delete().neq("id","");if(error){supaErr(error);return}S[t]=[]}await saveConfig({...S.config,ejemplo:false});return}
+  if(S.mode==="db"){for(const t of S.tecnicos)await DB.doc("tecnicos/"+t.id).delete().catch(()=>{});for(const o of S.ots)await DB.doc("ots/"+o.id).delete().catch(()=>{});await saveConfig({...S.config,ejemplo:false})}
+  else{S.tecnicos=[];S.ots=[];S.config={...S.config,ejemplo:false};lsSave();render()}}
+
+function startLocal(reason){
+  S.mode="local";const d=lsLoad();
+  if(d){S.tecnicos=d.tecnicos||[];S.ots=d.ots||[];S.config=d.config||{}}
+  else{const s=buildSample(today());S.tecnicos=s.tecnicos;S.ots=s.ots;S.config=s.config;lsSave()}
+  S.localReason=reason||"";render()}
+async function init(){
+  if(window.SUPA&&window.supabase){try{await initSupa()}catch(e){S.mode="supa-error";S.err=(e&&e.message)||String(e);render()}return}
+  if(!window.claude||!window.claude.use){startLocal();return}
+  let db=null;try{db=await window.claude.use("db")}catch(e){db=null}
+  if(!db){startLocal("sin-db");return}
+  DB=db;S.mode="db-loading";
+  const timer=setTimeout(()=>{if(S.mode==="db-loading"){S.mode="db-timeout";render()}},10000);
+  const done=()=>{if(S.ready.t&&S.ready.o&&S.ready.c&&S.mode!=="db"){clearTimeout(timer);S.mode="db"}render()};
+  const onErr=e=>{console.warn(e);clearTimeout(timer);if(S.mode!=="db"){startLocal("error")}else toast("Se perdió la conexión con los datos compartidos. Recarga la página.")};
+  DB.collection("tecnicos").onSnapshot(s=>{S.tecnicos=s.docs.map(d=>({id:d.id,...d.data()}));S.ready.t=true;done()},onErr);
+  DB.collection("ots").onSnapshot(s=>{S.ots=s.docs.map(d=>({id:d.id,...d.data()}));S.ready.o=true;done()},onErr);
+  DB.doc("config/empresa").onSnapshot(s=>{S.config=s.exists?s.data():{};S.ready.c=true;done()},onErr);
+}
+
+
+/* ---------- Supabase (versión web publicada) ---------- */
+let SB=null,rT=null;
+function scheduleRender(){clearTimeout(rT);rT=setTimeout(render,150)}
+function supaErr(e){console.warn(e);toast(/JWT|auth|permission|policy|401|403/i.test((e&&(e.message||e.code))||"")?"Tu sesión no tiene permiso. Vuelve a iniciar sesión.":"No se pudo guardar: "+((e&&e.message)||"error de conexión"))}
+async function initSupa(){
+  SB=window.supabase.createClient(window.SUPA.url,window.SUPA.key);
+  SB.auth.onAuthStateChange(ev=>{if(ev==="SIGNED_OUT"){S.mode="supa-login";render()}});
+  const {data}=await SB.auth.getSession();
+  if(!data||!data.session){S.mode="supa-login";render();return}
+  await supaLoad()}
+async function fetchAll(t){let out=[],f=0;for(;;){const {data,error}=await SB.from(t).select("id,data").range(f,f+999);if(error)throw error;out=out.concat(data);if(data.length<1000)break;f+=1000}return out.map(r=>({id:r.id,...(r.data||{})}))}
+async function supaLoad(){
+  S.mode="db-loading";render();
+  try{const [t,o,c]=await Promise.all([fetchAll("tecnicos"),fetchAll("ots"),fetchAll("config")]);S.tecnicos=t;S.ots=o;const e=c.find(x=>x.id==="empresa");if(e){const{id,...r}=e;S.config=r}else S.config={};
+    const u=await SB.auth.getUser();S.user=u.data&&u.data.user;S.mode="supa";render()}
+  catch(e){console.warn(e);S.mode="supa-error";S.err=(e&&e.message)||String(e);render();return}
+  SB.channel("taller").on("postgres_changes",{event:"*",schema:"public"},p=>{const tb=p.table;if(!["tecnicos","ots","config"].includes(tb))return;
+    if(p.eventType==="DELETE"){const id=p.old&&p.old.id;if(tb!=="config")S[tb]=S[tb].filter(x=>x.id!==id)}
+    else{const row={id:p.new.id,...(p.new.data||{})};if(tb==="config"){if(row.id==="empresa"){const{id,...r}=row;S.config=r}}else{const a=S[tb];const i=a.findIndex(x=>x.id===row.id);if(i>=0)a[i]=row;else a.push(row)}}
+    scheduleRender()}).subscribe()}
+async function supaUpsert(t,rows){const now=new Date().toISOString();const {error}=await SB.from(t).upsert(rows.map(o=>({id:o.id,data:strip(o),updated_at:now})));if(error){supaErr(error);return false}
+  for(const o of rows){const a=S[t];const i=a.findIndex(x=>x.id===o.id);if(i>=0)a[i]=o;else a.push(o)}render();return true}
+function loginView(){return`<div style="max-width:380px;margin:8vh auto 0" class="panel"><div class="logos" style="margin-bottom:16px"><img class="l-nimac" src="${LOGOS.nimac}" alt="NIMAC CAT"><img class="l-foton" src="${LOGOS.foton}" alt="FOTON"></div>
+  <h2 style="color:var(--ink)">Iniciar sesión</h2><form id="loginForm" class="grid" style="gap:12px"><div class="field"><label for="lg_e">Correo</label><input type="text" id="lg_e" autocomplete="username" inputmode="email" style="width:100%"></div>
+  <div class="field"><label for="lg_p">Contraseña</label><input type="password" id="lg_p" autocomplete="current-password" style="width:100%;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);padding:7px 9px"></div>
+  <p id="lg_msg" class="note" style="color:var(--bad);margin:0"></p><button class="btn primary" type="submit" id="lg_b">Entrar</button></form>
+  <p class="note">¿Sin cuenta? Pide al administrador del taller que te cree un usuario.</p></div>`}
+function bindLogin(){$("#loginForm").onsubmit=async e=>{e.preventDefault();$("#lg_b").disabled=true;$("#lg_msg").textContent="";
+  const {error}=await SB.auth.signInWithPassword({email:$("#lg_e").value.trim(),password:$("#lg_p").value});
+  if(error){$("#lg_msg").textContent=/invalid/i.test(error.message)?"Correo o contraseña incorrectos.":error.message;$("#lg_b").disabled=false;return}
+  supaLoad()}}
+
+/* ================= Datos de ejemplo ================= */
+/*SAMPLE-START*/
+function buildSample(ref){
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const pick=a=>a[Math.floor(rnd()*a.length)];
+  const p2=n=>String(n).padStart(2,"0");
+  const f=d=>d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());
+  const add=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+  const mon=(()=>{const x=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate());return add(x,-((x.getDay()+6)%7))})();
+  const T=[["t-jonathan","Jonathan Pérez","Mecánica General","En trabajo"],["t-joel","Joel Martínez","Electricidad","Disponible"],["t-carlos","Carlos Ramírez","Hidráulica","En trabajo"],["t-mario","Mario Gómez","Soldadura","Disponible"],["t-luis","Luis Herrera","Diagnóstico","En trabajo"],["t-andres","Andrés Castillo","Mecánica General","Vacaciones"]];
+  const tecnicos=T.map((t,i)=>({id:t[0],nombre:t[1],especialidad:t[2],estado:t[3],horasSemana:48,telefono:"",creado:"2026-01-0"+(i+1),ejemplo:true}));
+  const clientes=["Constructora Andina","Minera Los Pinos","Transportes Ruta Sur","Agroindustrial El Valle","Municipalidad de San José","Áridos del Norte"];
+  const equipos=["Excavadora CAT 320D","Cargador Volvo L120H","Camión Kenworth T800","Retroexcavadora JCB 3CX","Motoniveladora CAT 140K","Grúa Hiab 288","Tractor John Deere 6110","Rodillo Dynapac CA250"];
+  const trabajos={"Mecánica General":["Cambio de embrague y revisión de caja","Servicio de 500 h y cambio de filtros","Reparación de frenos traseros","Overhaul de bomba de agua"],
+   "Electricidad":["Revisión de sistema de carga y alternador","Reparación de arnés de luces","Cambio de motor de arranque","Instalación de alarma de retroceso"],
+   "Hidráulica":["Cambio de sellos de cilindro de brazo","Reparación de bomba hidráulica principal","Cambio de mangueras de alta presión","Ajuste de válvula de alivio"],
+   "Soldadura":["Reconstrucción de cucharón","Soldadura de chasis fisurado","Refuerzo de pluma","Fabricación de soporte de escape"],
+   "Diagnóstico":["Escaneo electrónico por falla de motor","Diagnóstico de pérdida de potencia","Prueba de presiones hidráulicas","Diagnóstico de sobrecalentamiento"]};
+  const ots=[];let n=101;
+  const mk=(tec,ini,dur,est,estado,opts={})=>{const t=tecnicos.find(x=>x.id===tec);const esp=opts.esp||t.especialidad;
+    let fin=ini;let k=dur;while(k>1){fin=add(fin,1);if(fin.getDay()!==0)k--}
+    const real=estado==="Finalizado"?Math.round(est*(0.85+rnd()*0.4)):estado==="En Proceso"?Math.round(est*0.5):0;
+    const late=estado==="Finalizado"&&rnd()<0.2;
+    ots.push({id:"ot-"+n,numero:"OT-"+n,cliente:opts.cliente||pick(clientes),equipo:pick(equipos),descripcion:opts.desc||pick(trabajos[esp]),especialidad:esp,prioridad:opts.prio||pick(["Alta","Media","Media","Baja"]),
+      inicio:f(ini),fin:f(fin),horasEst:est,horasReales:real,tecnicoId:tec,estado,facturable:opts.fact!==false,cierre:estado==="Finalizado"?f(late?add(fin,2):fin):"",observaciones:"",ejemplo:true});n++};
+  // Historial de los últimos 5 meses (finalizadas)
+  const act=["t-jonathan","t-joel","t-carlos","t-mario","t-luis","t-andres"];
+  for(let w=22;w>=1;w--){const ws=add(mon,-7*w);act.forEach((tec,i)=>{if(rnd()<0.75){const d=Math.floor(rnd()*4);mk(tec,add(ws,d),1+Math.floor(rnd()*2),[8,10,12,16,6][Math.floor(rnd()*5)],"Finalizado",{fact:rnd()>0.12})}})}
+  // Semana actual: Jonathan sobrecargado, Joel con poco trabajo, Andrés de vacaciones con una OT pendiente
+  mk("t-jonathan",mon,2,16,"En Proceso",{prio:"Alta"});
+  mk("t-jonathan",add(mon,1),2,14,"Pendiente",{prio:"Media"});
+  mk("t-jonathan",add(mon,3),2,12,"Pendiente",{prio:"Baja"});
+  mk("t-jonathan",add(mon,4),2,10,"Pendiente",{prio:"Media",esp:"Electricidad",desc:"Revisión de luces y tablero"});
+  mk("t-joel",add(mon,1),1,8,"En Proceso",{prio:"Media"});
+  mk("t-joel",add(mon,3),1,6,"Pendiente",{prio:"Baja"});
+  mk("t-carlos",mon,3,20,"En Proceso",{prio:"Alta"});
+  mk("t-carlos",add(mon,3),2,16,"Pendiente",{prio:"Media"});
+  mk("t-mario",add(mon,1),2,12,"Pendiente",{prio:"Media"});
+  mk("t-mario",add(mon,4),1,6,"Pendiente",{prio:"Baja",fact:false,desc:"Mantenimiento de equipos de soldadura del taller"});
+  mk("t-luis",mon,1,6,"Finalizado",{prio:"Alta"});
+  mk("t-luis",add(mon,2),2,14,"Pendiente",{prio:"Alta"});
+  mk("t-andres",add(mon,2),2,12,"Pendiente",{prio:"Media",esp:"Mecánica General"});
+  // Próxima semana
+  mk("t-joel",add(mon,7),2,12,"Pendiente",{});mk("t-carlos",add(mon,8),2,14,"Pendiente",{});mk("t-jonathan",add(mon,9),1,8,"Pendiente",{});
+  return {tecnicos,ots,config:{empresa:"Taller de Mantenimiento",logo:"",ejemplo:true}};
+}
+/*SAMPLE-END*/
+
+/* ================= Cálculos ================= */
+function otDays(ot){const a=pd(ot.inicio),b=pd(ot.fin)||a;if(!a)return[];const r=[];for(let d=new Date(a);d<=b;d=addDays(d,1)){if(d.getDay()!==0)r.push(ymd(d))}if(!r.length)r.push(ot.inicio);return r}
+function hoursIn(ot,from,to,field){const days=otDays(ot);if(!days.length)return 0;const f=ymd(from),t=ymd(to);const c=days.filter(d=>d>=f&&d<=t).length;return (Number(ot[field])||0)*c/days.length}
+function overlaps(ot,from,to){const f=ymd(from),t=ymd(to);return ot.inicio<=t&&(ot.fin||ot.inicio)>=f}
+function hoursOnDay(techId,day){const s=ymd(day);let h=0;for(const o of S.ots){if(o.tecnicoId!==techId)continue;const d=otDays(o);if(d.includes(s))h+=(Number(o.horasEst)||0)/d.length}return h}
+const capDay=t=>(Number(t.horasSemana)||48)/6;
+function periodRange(kind,ref){ref=ref||today();
+  if(kind==="semana"){const a=mondayOf(ref);return{from:a,to:addDays(a,6),label:"Semana del "+fmtShort(a)+" al "+fmtShort(addDays(a,6))+" de "+addDays(a,6).getFullYear()}}
+  if(kind==="mes"){const a=new Date(ref.getFullYear(),ref.getMonth(),1);return{from:a,to:new Date(ref.getFullYear(),ref.getMonth()+1,0),label:MESES[a.getMonth()]+" "+a.getFullYear()}}
+  const a=new Date(ref.getFullYear(),0,1);return{from:a,to:new Date(ref.getFullYear(),11,31),label:"Año "+a.getFullYear()}}
+function shiftPeriod(kind,ref,dir){if(kind==="semana")return addDays(ref,7*dir);if(kind==="mes")return new Date(ref.getFullYear(),ref.getMonth()+dir,1);return new Date(ref.getFullYear()+dir,0,1)}
+function techStats(t,from,to){
+  const mine=S.ots.filter(o=>o.tecnicoId===t.id);
+  const inP=mine.filter(o=>overlaps(o,from,to));
+  let prog=0,trab=0,prod=0,improd=0;
+  for(const o of inP){prog+=hoursIn(o,from,to,"horasEst");const r=hoursIn(o,from,to,"horasReales");trab+=r;if(o.facturable!==false)prod+=r;else improd+=r}
+  const fF=ymd(from),fT=ymd(to);
+  const fin=mine.filter(o=>o.estado==="Finalizado"&&(o.cierre||o.fin)>=fF&&(o.cierre||o.fin)<=fT);
+  const se=fin.reduce((a,o)=>a+(Number(o.horasEst)||0),0),sr=fin.reduce((a,o)=>a+(Number(o.horasReales)||0),0);
+  const weeks=Math.max(1,Math.round(((to-from)/864e5+1)/7));
+  const cap=ausente(t.estado)?0:(Number(t.horasSemana)||48)*weeks;
+  const aTiempo=fin.filter(o=>(o.cierre||o.fin)<=o.fin).length;
+  return{t,actividades:inP.length,finalizadas:fin.length,prog,trab,prod,improd,cap,carga:cap?prog/cap*100:(prog>0?Infinity:0),efic:sr>0?se/sr*100:null,se,sr,aTiempo,abiertas:inP.filter(o=>o.estado!=="Finalizado").length}}
+function allStats(from,to){return sortedTechs().map(t=>techStats(t,from,to))}
+function cargaClass(c){return c>100?"bad":c>=90?"warn":c<50?"low":""}
+function estadoTecPill(e){const m={"Disponible":"ok","En trabajo":"acc","Vacaciones":"info","Permiso":"warn","Capacitación":"info"};return`<span class="pill ${m[e]||""}">${esc(e)}</span>`}
+function estadoOtPill(o){if(o.estado!=="Finalizado"&&o.fin&&o.fin<ymd(today()))return`<span class="pill bad">Atrasada</span>`;const m={"Pendiente":"warn","En Proceso":"acc","Finalizado":"ok"};return`<span class="pill ${m[o.estado]||""}">${esc(o.estado)}</span>`}
+function prioPill(p){const m={"Alta":"bad","Media":"warn","Baja":""};return`<span class="pill ${m[p]||""}">${esc(p)}</span>`}
+function techCell(id){const t=techById(id);if(!t)return'<span class="muted">Sin asignar</span>';return`<span class="tech-name"><span class="av" style="--c:${techColor(t.id)}">${esc(initials(t.nombre))}</span>${esc(t.nombre)}</span>`}
+
+/* ================= Balanceo inteligente ================= */
+function balance(from,to){
+  const stats=allStats(from,to);const map=new Map(stats.map(s=>[s.t.id,{...s,load:s.prog}]));
+  const alerts=[],moves=[];
+  const loadPct=s=>s.cap?s.load/s.cap*100:(s.load>0?Infinity:0);
+  for(const s of stats){
+    if(ausente(s.t.estado)&&s.abiertas>0)alerts.push({k:"bad",txt:`${s.t.nombre} está en ${s.t.estado.toLowerCase()} y tiene ${s.abiertas} OT abierta${s.abiertas>1?"s":""} esta semana.`});
+    else if(s.cap&&s.carga>100)alerts.push({k:"bad",txt:`Técnico sobrecargado: ${s.t.nombre} al ${pct(s.carga)} de su capacidad (${h1(s.prog)} h de ${h1(s.cap)} h).`});
+    else if(s.cap&&s.carga>=90)alerts.push({k:"warn",txt:`${s.t.nombre} está cerca del límite (${pct(s.carga)}).`});
+    else if(s.cap&&s.carga<50)alerts.push({k:"low",txt:`Técnico con poco trabajo: ${s.t.nombre} al ${pct(s.carga)} (${h1(s.cap-s.prog)} h libres).`});
+  }
+  const receivers=()=>[...map.values()].filter(s=>s.cap>0&&!ausente(s.t.estado));
+  const movable=s=>S.ots.filter(o=>o.tecnicoId===s.t.id&&o.estado==="Pendiente"&&overlaps(o,from,to)&&!moves.some(m=>m.ot.id===o.id));
+  const fit=(o,r)=>o.especialidad?(o.especialidad===r.t.especialidad?0:(r.t.especialidad==="Mecánica General"||r.t.especialidad==="Diagnóstico"?1:3)):1;
+  // 1) OT de técnicos ausentes
+  for(const s of map.values()){if(!ausente(s.t.estado))continue;
+    for(const o of movable(s)){const h=hoursIn(o,from,to,"horasEst");const cands=receivers().map(r=>({r,score:fit(o,r)*40+loadPct({...r,load:r.load+h})})).sort((a,b)=>a.score-b.score);
+      const best=cands[0];if(!best)continue;moves.push({ot:o,from:s.t,to:best.r.t,h,motivo:`${s.t.nombre} está en ${s.t.estado.toLowerCase()}`});s.load-=h;best.r.load+=h}}
+  // 2) Equilibrar sobrecarga
+  for(let guard=0;guard<12;guard++){
+    const rs=receivers();if(rs.length<2)break;
+    const over=rs.filter(s=>loadPct(s)>90).sort((a,b)=>loadPct(b)-loadPct(a))[0];if(!over)break;
+    let best=null;
+    for(const o of movable(over)){const h=hoursIn(o,from,to,"horasEst");
+      for(const r of rs){if(r===over)continue;const f=fit(o,r);if(f>=3)continue;const nr=loadPct({...r,load:r.load+h});const no=loadPct({...over,load:over.load-h});if(nr>85)continue;
+        const score=Math.abs(no-nr)+f*15+(o.prioridad==="Alta"?8:0);if(!best||score<best.score)best={o,r,h,score}}}
+    if(!best)break;
+    moves.push({ot:best.o,from:over.t,to:best.r.t,h:best.h,motivo:`equilibrar la carga semanal (${pct(loadPct(over))} → ${pct(loadPct({...over,load:over.load-best.h}))})`});
+    over.load-=best.h;best.r.load+=best.h}
+  // Resumen agrupado
+  const groups={};for(const m of moves){const k=m.from.id+">"+m.to.id;(groups[k]=groups[k]||{from:m.from,to:m.to,n:0}).n++}
+  const after=[...map.values()].map(s=>({t:s.t,antes:s.carga,despues:loadPct(s),cap:s.cap}));
+  return{stats,alerts,moves,groups:Object.values(groups),after}}
+async function applyMoves(ms){await saveMany(ms.map(m=>["ots",{...m.ot,tecnicoId:m.to.id}]));toast(ms.length===1?`${ms[0].ot.numero} reasignada a ${ms[0].to.nombre}`:`${ms.length} actividades reasignadas`)}
+
+/* ================= Navegación ================= */
+const ICON={
+ dashboard:'<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
+ tecnicos:'<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2M16 3.1a4 4 0 0 1 0 7.8M22 21v-2a5 5 0 0 0-3.5-4.8"/>',
+ actividades:'<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2zM9 12h6M9 16h4"/>',
+ calendario:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+ carga:'<path d="M12 20V10M18 20V4M6 20v-4"/>',
+ productividad:'<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+ balanceo:'<path d="M12 3v18M5 7h14M5 7l-3 7a3.5 3.5 0 0 0 6 0zM19 7l-3 7a3.5 3.5 0 0 0 6 0z"/>',
+ reportes:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/>',
+ ajustes:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
+const ROUTES=[["dashboard","Dashboard"],["tecnicos","Técnicos"],["actividades","Actividades"],["calendario","Calendario"],["carga","Carga de trabajo"],["productividad","Productividad"],["balanceo","Balanceo"],["reportes","Reportes"],["ajustes","Ajustes"]];
+const route=()=>{const h=location.hash.replace("#","");return ROUTES.some(r=>r[0]===h)?h:"dashboard"};
+function logosHTML(cls){return`<div class="logos ${cls||""}"><img class="l-nimac" src="${LOGOS.nimac}" alt="NIMAC CAT"><img class="l-foton" src="${LOGOS.foton}" alt="FOTON"></div>`}
+function renderNav(){const sl=$("#sideLogos");if(sl&&!sl.childElementCount)sl.innerHTML=`<img class="l-nimac" src="${LOGOS.nimac}" alt="NIMAC CAT"><img class="l-foton" src="${LOGOS.foton}" alt="FOTON">`;const r=route();const open=S.ots.filter(o=>o.estado!=="Finalizado").length;
+  $("#nav").innerHTML=ROUTES.map(([k,l])=>`<a href="#${k}" class="${k===r?"active":""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>${l}${k==="tecnicos"?`<span class="num">${S.tecnicos.length}</span>`:k==="actividades"?`<span class="num">${open}</span>`:""}</a>`).join("");
+  $("#brandName").textContent=S.config.empresa||"Control de Taller";
+  $("#brandMark").innerHTML=S.config.logo?`<img src="${esc(S.config.logo)}" alt="">`:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>';
+  if(S.mode==="supa"||S.mode==="supa-login"){$("#modeInfo").innerHTML=S.mode==="supa"?`<span class="dot"></span>Datos compartidos · en vivo<br><span>${esc(S.user&&S.user.email||"")}</span> <button class="btn sm ghost" id="logoutBtn" style="color:var(--side-ink);padding:2px 4px">Salir</button>`:"";const lb=$("#logoutBtn");if(lb)lb.onclick=()=>SB.auth.signOut();return}
+  $("#modeInfo").innerHTML=S.mode==="db"?'<span class="dot"></span>Datos compartidos del taller':'<span class="dot local"></span>Guardado sólo en este navegador'}
+window.addEventListener("hashchange",()=>{render();window.scrollTo(0,0)});
+
+/* ================= Render principal ================= */
+let charts=[];
+function killCharts(){charts.forEach(c=>c.destroy());charts=[]}
+function render(){
+  if(S.mode==="supa-login"){renderNav();$("#nav").innerHTML="";$("#main").innerHTML=loginView();bindLogin();return}
+  if(S.mode==="supa-error"){$("#main").innerHTML=`<div class="loading">No se pudo conectar con la base de datos.<br><span class="muted">${esc(S.err||"")}</span><br><br><button class="btn primary" onclick="location.reload()">Reintentar</button></div>`;return}
+  if(S.mode==="loading"||S.mode==="db-loading"){$("#main").innerHTML='<div class="loading">Cargando datos del taller…</div>';return}
+  if(S.mode==="db-timeout"){$("#main").innerHTML='<div class="loading">Los datos compartidos están tardando en responder.<br><br><button class="btn primary" id="useLocal">Trabajar en este navegador</button></div>';$("#useLocal").onclick=()=>startLocal("timeout");return}
+  killCharts();renderNav();
+  const r=route();const V={dashboard:vDashboard,tecnicos:vTecnicos,actividades:vActividades,calendario:vCalendario,carga:vCarga,productividad:vProductividad,balanceo:vBalanceo,reportes:vReportes,ajustes:vAjustes};
+  $("#main").innerHTML=logosHTML("m-logos").replace('class="logos m-logos"','class="logos m-logos" style="display:none"')+exampleBanner()+V[r]();
+  const fn=AFTER[r];if(fn)fn();bindCommon()}
+function exampleBanner(){if((S.mode==="db"||S.mode==="supa")&&!S.tecnicos.length&&!S.ots.length&&!S.config.ejemplo)return`<div class="banner" style="background:var(--accent-soft);border-color:var(--accent)"><span><b>El taller está vacío.</b> Agrega tu primer técnico, o carga datos de ejemplo para ver cómo funciona cada módulo.</span><span class="tools"><button class="btn sm primary" data-act="new-tec">+ Agregar técnico</button><button class="btn sm" data-act="load-sample">Cargar datos de ejemplo</button></span></div>`;if(!S.config.ejemplo)return"";return`<div class="banner"><span><b>Datos de ejemplo.</b> Los técnicos y órdenes que ves son ficticios para mostrar cómo funciona. Cuando quieras, bórralos y carga tu personal real.</span><button class="btn sm" data-act="clear-sample">Borrar ejemplo y empezar</button></div>`}
+function head(title,sub,tools=""){return`<div class="head"><div><h1>${title}</h1>${sub?`<p>${sub}</p>`:""}</div><div class="tools">${tools}</div></div>`}
+function periodTools(){return`<div class="seg" data-seg="period">${["semana","mes","año"].map(k=>`<button type="button" data-v="${k}" class="${UI.period===k?"on":""}">${k[0].toUpperCase()+k.slice(1)}</button>`).join("")}</div>
+  <div class="week-nav"><button class="btn sm" data-act="prev-period" aria-label="Anterior">‹</button><span class="lbl">${periodRange(UI.period,UI.periodRef).label}</span><button class="btn sm" data-act="next-period" aria-label="Siguiente">›</button></div>`}
+function weekTools(){const a=UI.week,b=addDays(a,6);return`<div class="week-nav"><button class="btn sm" data-act="prev-week" aria-label="Semana anterior">‹</button><span class="lbl">${fmtShort(a)} – ${fmtShort(b)} ${b.getFullYear()}</span><button class="btn sm" data-act="next-week" aria-label="Semana siguiente">›</button><button class="btn sm" data-act="this-week">Hoy</button></div>`}
+const AFTER={};
+
+/* ---------- Dashboard ---------- */
+function vDashboard(){
+  const {from,to,label}=periodRange(UI.period,UI.periodRef);
+  const st=allStats(from,to);
+  const activos=S.tecnicos.filter(t=>!ausente(t.estado)).length;
+  const abiertas=S.ots.filter(o=>o.estado!=="Finalizado").length;
+  const cerradas=st.reduce((a,s)=>a+s.finalizadas,0);
+  const trab=st.reduce((a,s)=>a+s.trab,0),fact=st.reduce((a,s)=>a+s.prod,0);
+  const se=st.reduce((a,s)=>a+s.se,0),sr=st.reduce((a,s)=>a+s.sr,0);const prodG=sr?se/sr*100:null;
+  const best=st.filter(s=>s.efic!=null&&s.finalizadas>=2).sort((a,b)=>b.efic-a.efic)[0];
+  const wk=periodRange("semana",today());const wst=allStats(wk.from,wk.to).filter(s=>s.cap>0);const low=wst.sort((a,b)=>a.carga-b.carga)[0];
+  const atr=S.ots.filter(o=>o.estado!=="Finalizado"&&o.fin<ymd(today())).length;
+  const b=balance(wk.from,wk.to);
+  return head("Productividad del taller",label,periodTools())+`
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Técnicos activos</div><div class="val">${activos}<small>/ ${S.tecnicos.length}</small></div><div class="sub">${S.tecnicos.length-activos} en vacaciones o permiso</div></div>
+    <div class="kpi"><div class="lbl">OT abiertas</div><div class="val">${abiertas}</div><div class="sub">${atr?`<span style="color:var(--bad)">${atr} atrasada${atr>1?"s":""}</span>`:"Ninguna atrasada"}</div></div>
+    <div class="kpi"><div class="lbl">OT cerradas</div><div class="val">${cerradas}</div><div class="sub">en el periodo</div></div>
+    <div class="kpi"><div class="lbl">Productividad general</div><div class="val">${pct(prodG)}</div><div class="sub">horas estimadas ÷ horas reales</div></div>
+    <div class="kpi"><div class="lbl">Horas trabajadas</div><div class="val">${h1(trab)}<small>h</small></div><div class="sub">registradas en OT</div></div>
+    <div class="kpi"><div class="lbl">Horas facturables</div><div class="val">${h1(fact)}<small>h</small></div><div class="sub">${trab?pct(fact/trab*100)+" del total":"—"}</div></div>
+    <div class="kpi"><div class="lbl">Técnico más productivo</div><div class="val name">${best?esc(best.t.nombre.split(" ")[0]):"—"}</div><div class="sub">${best?"Eficiencia "+pct(best.efic)+" · "+best.finalizadas+" OT":"Sin OT cerradas"}</div></div>
+    <div class="kpi"><div class="lbl">Menor carga esta semana</div><div class="val name">${low?esc(low.t.nombre.split(" ")[0]):"—"}</div><div class="sub">${low?"Carga "+pct(low.carga)+" · "+h1(low.cap-low.prog)+" h libres":"—"}</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="panel"><h2>Productividad mensual <small>últimos 6 meses</small></h2><div class="chart-box"><canvas id="cProdMes"></canvas></div></div>
+    <div class="panel"><h2>Horas por técnico <small>${esc(label)}</small></h2><div class="chart-box"><canvas id="cHoras"></canvas></div></div>
+    <div class="panel"><h2>Actividades finalizadas <small>por mes</small></h2><div class="chart-box"><canvas id="cFin"></canvas></div></div>
+    <div class="panel"><h2>Cumplimiento de programación <small>% cerradas a tiempo</small></h2><div class="chart-box"><canvas id="cCumpl"></canvas></div></div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h2>Sugerencias de esta semana</h2>${b.moves.length?b.moves.slice(0,4).map(m=>`<div class="alert low">✓ Reasignar <span class="ot">${esc(m.ot.numero)}</span> de ${esc(m.from.nombre.split(" ")[0])} a ${esc(m.to.nombre.split(" ")[0])}</div>`).join("")+`<p class="note"><a href="#balanceo">Ver detalle y aplicar en Balanceo →</a></p>`:'<p class="muted">La carga de la semana está equilibrada.</p>'}</div>`}
+function monthsBack(n){const r=[];const t=today();for(let i=n-1;i>=0;i--){const a=new Date(t.getFullYear(),t.getMonth()-i,1);r.push({from:a,to:new Date(a.getFullYear(),a.getMonth()+1,0),label:MESES[a.getMonth()].slice(0,3)})}return r}
+function chartBase(){if(!window.Chart)return{};const ink=css("--ink-2"),grid=css("--line");Chart.defaults.font.family=css("--font-body");Chart.defaults.color=ink;
+  return{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false}},scales:{x:{grid:{display:false},ticks:{color:ink}},y:{beginAtZero:true,grid:{color:grid},ticks:{color:ink}}}}}
+function mkChart(id,cfg){const el=document.getElementById(id);if(!el||!window.Chart)return;charts.push(new Chart(el,cfg))}
+function monthlySeries(){const ms=monthsBack(6);return ms.map(m=>{const st=allStats(m.from,m.to);const se=st.reduce((a,s)=>a+s.se,0),sr=st.reduce((a,s)=>a+s.sr,0);const fin=st.reduce((a,s)=>a+s.finalizadas,0),at=st.reduce((a,s)=>a+s.aTiempo,0);return{label:m.label,efic:sr?Math.round(se/sr*100):null,fin,cumpl:fin?Math.round(at/fin*100):null}})}
+AFTER.dashboard=()=>{
+  const acc=css("--accent"),ok=css("--ok");const ser=monthlySeries();const {from,to}=periodRange(UI.period,UI.periodRef);const st=allStats(from,to);
+  const base=chartBase();
+  mkChart("cProdMes",{type:"line",data:{labels:ser.map(s=>s.label),datasets:[{data:ser.map(s=>s.efic),borderColor:acc,backgroundColor:acc+"22",fill:true,tension:.3,pointRadius:3,pointBackgroundColor:acc}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,suggestedMax:110,ticks:{...base.scales.y.ticks,callback:v=>v+"%"}}}}});
+  mkChart("cHoras",{type:"bar",data:{labels:st.map(s=>s.t.nombre.split(" ")[0]),datasets:[{label:"Productivas",data:st.map(s=>+s.prod.toFixed(1)),backgroundColor:st.map(s=>techColor(s.t.id))},{label:"Improductivas",data:st.map(s=>+s.improd.toFixed(1)),backgroundColor:css("--line-strong")}]},options:{...base,indexAxis:"y",plugins:{...base.plugins,legend:{display:true,position:"bottom"}},scales:{x:{stacked:true,beginAtZero:true,grid:{color:css("--line")},ticks:{callback:v=>v+" h"}},y:{stacked:true,grid:{display:false}}}}});
+  mkChart("cFin",{type:"bar",data:{labels:ser.map(s=>s.label),datasets:[{data:ser.map(s=>s.fin),backgroundColor:ok,borderRadius:3}]},options:base});
+  mkChart("cCumpl",{type:"line",data:{labels:ser.map(s=>s.label),datasets:[{data:ser.map(s=>s.cumpl),borderColor:ok,backgroundColor:ok+"22",fill:true,tension:.3,pointRadius:3,pointBackgroundColor:ok}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,max:100,ticks:{...base.scales.y.ticks,callback:v=>v+"%"}}}}});
+};
+
+/* ---------- Técnicos ---------- */
+function vTecnicos(){
+  const wk=periodRange("semana",today());const f=UI.tecFilter;
+  const list=sortedTechs().filter(t=>(!f.esp||t.especialidad===f.esp)&&(!f.est||t.estado===f.est));
+  const counts=ESTADOS_TEC.map(e=>`${e}: <b>${S.tecnicos.filter(t=>t.estado===e).length}</b>`).join(" · ");
+  return head("Técnicos",counts,`<button class="btn primary" data-act="new-tec">+ Agregar técnico</button>`)+`
+  <div class="filters">
+    <select id="fEsp" aria-label="Especialidad"><option value="">Todas las especialidades</option>${ESPECIALIDADES.map(e=>`<option ${f.esp===e?"selected":""}>${e}</option>`).join("")}</select>
+    <select id="fEst" aria-label="Estado"><option value="">Todos los estados</option>${ESTADOS_TEC.map(e=>`<option ${f.est===e?"selected":""}>${e}</option>`).join("")}</select>
+  </div>
+  ${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Técnico</th><th>Especialidad</th><th>Estado</th><th class="n">Capacidad</th><th>Carga esta semana</th><th class="n">OT abiertas</th><th class="n">Eficiencia (mes)</th><th></th></tr></thead><tbody>
+  ${list.map(t=>{const s=techStats(t,wk.from,wk.to);const m=periodRange("mes",today());const sm=techStats(t,m.from,m.to);const open=S.ots.filter(o=>o.tecnicoId===t.id&&o.estado!=="Finalizado").length;const c=isFinite(s.carga)?s.carga:100;
+  return`<tr><td>${techCell(t.id)}${t.telefono?`<div class="muted" style="font-size:12px;margin-left:36px">${esc(t.telefono)}</div>`:""}</td><td><span class="tag">${esc(t.especialidad)}</span></td>
+  <td><select data-quick-estado="${t.id}" aria-label="Estado de ${esc(t.nombre)}">${ESTADOS_TEC.map(e=>`<option ${t.estado===e?"selected":""}>${e}</option>`).join("")}</select></td>
+  <td class="n">${h1(Number(t.horasSemana)||48)} h/sem</td>
+  <td><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="flex:1"><i class="${cargaClass(s.carga)}" style="width:${Math.min(100,c)}%"></i></div><span style="font-variant-numeric:tabular-nums;min-width:42px;text-align:right">${s.cap?pct(s.carga):(s.prog?"—":"0%")}</span></div></td>
+  <td class="n">${open}</td><td class="n">${pct(sm.efic)}</td>
+  <td style="white-space:nowrap"><button class="btn sm" data-act="edit-tec" data-id="${t.id}">Editar</button> <button class="btn sm danger" data-act="del-tec" data-id="${t.id}">Eliminar</button></td></tr>`}).join("")}
+  </tbody></table></div>`:`<div class="panel empty">${S.tecnicos.length?"Ningún técnico coincide con el filtro.":"Aún no hay técnicos. Agrega el primero con el botón <b>+ Agregar técnico</b>."}</div>`}`}
+AFTER.tecnicos=()=>{
+  $("#fEsp").onchange=e=>{UI.tecFilter.esp=e.target.value;render()};$("#fEst").onchange=e=>{UI.tecFilter.est=e.target.value;render()};
+  document.querySelectorAll("[data-quick-estado]").forEach(s=>s.onchange=()=>{const t=techById(s.dataset.quickEstado);saveDoc("tecnicos",{...t,estado:s.value}).then(ok=>ok&&toast(`${t.nombre}: ${s.value}`))})};
+function tecForm(t){t=t||{nombre:"",especialidad:ESPECIALIDADES[0],estado:"Disponible",horasSemana:48,telefono:""};
+  openDlg(t.id?"Editar técnico":"Nuevo técnico",`<div class="form-grid">
+  <div class="field full"><label for="tf_n">Nombre completo</label><input type="text" id="tf_n" required value="${esc(t.nombre)}"></div>
+  <div class="field"><label for="tf_e">Especialidad</label><select id="tf_e">${ESPECIALIDADES.map(e=>`<option ${t.especialidad===e?"selected":""}>${e}</option>`).join("")}</select></div>
+  <div class="field"><label for="tf_s">Estado</label><select id="tf_s">${ESTADOS_TEC.map(e=>`<option ${t.estado===e?"selected":""}>${e}</option>`).join("")}</select></div>
+  <div class="field"><label for="tf_h">Horas por semana</label><input type="number" id="tf_h" min="1" max="84" step="1" value="${esc(t.horasSemana||48)}"></div>
+  <div class="field"><label for="tf_t">Teléfono (opcional)</label><input type="text" id="tf_t" value="${esc(t.telefono||"")}"></div></div>`,
+  async()=>{const nombre=$("#tf_n").value.trim();if(!nombre){toast("Escribe el nombre del técnico.");return false}
+    const o={...t,id:t.id||uid(),nombre,especialidad:$("#tf_e").value,estado:$("#tf_s").value,horasSemana:Number($("#tf_h").value)||48,telefono:$("#tf_t").value.trim(),creado:t.creado||new Date().toISOString()};
+    const ok=await saveDoc("tecnicos",o);if(ok)toast(t.id?"Técnico actualizado":"Técnico agregado");return ok},t.id?"Guardar cambios":"Agregar técnico")}
+
+/* ---------- Actividades / OT ---------- */
+function filteredOts(){const f=UI.otFilter;const q=f.q.toLowerCase();return S.ots.filter(o=>(!f.estado||(f.estado==="Atrasada"?(o.estado!=="Finalizado"&&o.fin<ymd(today())):o.estado===f.estado))&&(!f.prioridad||o.prioridad===f.prioridad)&&(!f.tec||(f.tec==="-"?!techById(o.tecnicoId):o.tecnicoId===f.tec))&&(!q||[o.numero,o.cliente,o.equipo,o.descripcion].join(" ").toLowerCase().includes(q))).sort((a,b)=>(b.inicio||"").localeCompare(a.inicio||"")||(b.numero||"").localeCompare(a.numero||""))}
+function vActividades(){const f=UI.otFilter;const list=filteredOts();const shown=list.slice(0,300);
+  return head("Programación de actividades",`${list.length} orden${list.length!==1?"es":""} de trabajo`,`<button class="btn primary" data-act="new-ot">+ Nueva OT</button>`)+`
+  <div class="filters">
+    <input type="search" id="fq" placeholder="Buscar OT, cliente, equipo o trabajo" value="${esc(f.q)}" aria-label="Buscar">
+    <select id="fe" aria-label="Estado"><option value="">Todos los estados</option>${[...ESTADOS_OT,"Atrasada"].map(e=>`<option ${f.estado===e?"selected":""}>${e}</option>`).join("")}</select>
+    <select id="fp" aria-label="Prioridad"><option value="">Toda prioridad</option>${PRIORIDADES.map(e=>`<option ${f.prioridad===e?"selected":""}>${e}</option>`).join("")}</select>
+    <select id="ft" aria-label="Técnico"><option value="">Todos los técnicos</option><option value="-" ${f.tec==="-"?"selected":""}>Sin asignar</option>${sortedTechs().map(t=>`<option value="${t.id}" ${f.tec===t.id?"selected":""}>${esc(t.nombre)}</option>`).join("")}</select>
+  </div>
+  ${list.length?`<div class="tbl-wrap"><table><thead><tr><th>N° OT</th><th>Cliente</th><th>Equipo</th><th>Trabajo</th><th>Prioridad</th><th>Inicio</th><th>Fin</th><th class="n">H. est.</th><th class="n">H. reales</th><th class="n">Efic.</th><th>Técnico</th><th>Estado</th></tr></thead><tbody>
+  ${shown.map(o=>{const ef=o.horasReales>0?o.horasEst/o.horasReales*100:null;return`<tr data-act="edit-ot" data-id="${o.id}" style="cursor:pointer"><td class="ot">${esc(o.numero)}</td><td>${esc(o.cliente)}</td><td>${esc(o.equipo)}</td><td style="min-width:200px">${esc(o.descripcion)}${o.facturable===false?' <span class="tag">Interna</span>':""}</td><td>${prioPill(o.prioridad)}</td><td style="white-space:nowrap">${fmtD(o.inicio)}</td><td style="white-space:nowrap">${fmtD(o.fin)}</td><td class="n">${h1(o.horasEst||0)}</td><td class="n">${h1(o.horasReales||0)}</td><td class="n" style="color:${ef==null?"":ef>=90?"var(--ok)":ef>=75?"var(--warn)":"var(--bad)"}">${pct(ef)}</td><td>${techCell(o.tecnicoId)}</td><td>${estadoOtPill(o)}</td></tr>`}).join("")}
+  </tbody></table></div>${list.length>shown.length?`<p class="note">Se muestran las 300 más recientes. Usa los filtros para acotar.</p>`:""}`:`<div class="panel empty">${S.ots.length?"Ninguna OT coincide con el filtro.":"Aún no hay órdenes de trabajo. Crea la primera con <b>+ Nueva OT</b>."}</div>`}`}
+AFTER.actividades=()=>{let tm;$("#fq").oninput=e=>{clearTimeout(tm);tm=setTimeout(()=>{UI.otFilter.q=e.target.value;render();const q=$("#fq");q.focus();q.setSelectionRange(q.value.length,q.value.length)},250)};
+  $("#fe").onchange=e=>{UI.otFilter.estado=e.target.value;render()};$("#fp").onchange=e=>{UI.otFilter.prioridad=e.target.value;render()};$("#ft").onchange=e=>{UI.otFilter.tec=e.target.value;render()}};
+function nextOtNumber(){let m=0;for(const o of S.ots){const n=parseInt(String(o.numero).replace(/\D/g,""),10);if(n>m)m=n}return"OT-"+(m+1)}
+function otForm(o,preset){const isNew=!o;o=o||{numero:nextOtNumber(),cliente:"",equipo:"",descripcion:"",especialidad:"",prioridad:"Media",inicio:ymd(today()),fin:ymd(today()),horasEst:8,horasReales:0,tecnicoId:"",estado:"Pendiente",facturable:true,cierre:"",observaciones:"",...(preset||{})};
+  const clientes=[...new Set(S.ots.map(x=>x.cliente).filter(Boolean))].sort();const equipos=[...new Set(S.ots.map(x=>x.equipo).filter(Boolean))].sort();
+  openDlg(isNew?"Nueva orden de trabajo":"Editar "+esc(o.numero),`<div class="form-grid">
+  <div class="field"><label for="of_n">Número OT</label><input type="text" id="of_n" value="${esc(o.numero)}"></div>
+  <div class="field"><label for="of_c">Cliente</label><input type="text" id="of_c" list="dl_c" value="${esc(o.cliente)}"><datalist id="dl_c">${clientes.map(c=>`<option value="${esc(c)}">`).join("")}</datalist></div>
+  <div class="field"><label for="of_q">Equipo (unidad o maquinaria)</label><input type="text" id="of_q" list="dl_q" value="${esc(o.equipo)}"><datalist id="dl_q">${equipos.map(c=>`<option value="${esc(c)}">`).join("")}</datalist></div>
+  <div class="field"><label for="of_es">Especialidad requerida</label><select id="of_es"><option value="">Cualquiera</option>${ESPECIALIDADES.map(e=>`<option ${o.especialidad===e?"selected":""}>${e}</option>`).join("")}</select></div>
+  <div class="field full"><label for="of_d">Descripción del trabajo</label><input type="text" id="of_d" value="${esc(o.descripcion)}"></div>
+  <div class="field"><label for="of_p">Prioridad</label><select id="of_p">${PRIORIDADES.map(e=>`<option ${o.prioridad===e?"selected":""}>${e}</option>`).join("")}</select></div>
+  <div class="field"><label for="of_t">Técnico asignado</label><select id="of_t"><option value="">Sin asignar</option>${sortedTechs().map(t=>`<option value="${t.id}" ${o.tecnicoId===t.id?"selected":""}>${esc(t.nombre)} · ${esc(t.especialidad)}${ausente(t.estado)?" ("+t.estado+")":""}</option>`).join("")}</select></div>
+  <div class="field"><label for="of_i">Fecha inicio programada</label><input type="date" id="of_i" value="${esc(o.inicio)}"></div>
+  <div class="field"><label for="of_f">Fecha fin programada</label><input type="date" id="of_f" value="${esc(o.fin)}"></div>
+  <div class="field"><label for="of_he">Horas estimadas</label><input type="number" id="of_he" min="0" step="0.5" value="${esc(o.horasEst)}"></div>
+  <div class="field"><label for="of_hr">Horas reales</label><input type="number" id="of_hr" min="0" step="0.5" value="${esc(o.horasReales)}"></div>
+  <div class="field"><label for="of_s">Estado</label><select id="of_s">${ESTADOS_OT.map(e=>`<option ${o.estado===e?"selected":""}>${e}</option>`).join("")}</select></div>
+  <div class="field"><label for="of_ci">Fecha de cierre</label><input type="date" id="of_ci" value="${esc(o.cierre||"")}"></div>
+  <label class="check full"><input type="checkbox" id="of_fa" ${o.facturable!==false?"checked":""}> Horas facturables al cliente (desmarca para trabajo interno, capacitación o espera)</label>
+  <div class="field full"><label for="of_o">Observaciones</label><textarea id="of_o">${esc(o.observaciones||"")}</textarea></div>
+  <p class="note full" id="of_warn"></p></div>`,
+  async()=>{const ini=$("#of_i").value,fin=$("#of_f").value||ini;if(!ini){toast("Indica la fecha de inicio.");return false}if(fin<ini){toast("La fecha fin no puede ser anterior al inicio.");return false}
+    const estado=$("#of_s").value;let cierre=$("#of_ci").value;if(estado==="Finalizado"&&!cierre)cierre=ymd(today());if(estado!=="Finalizado")cierre="";
+    const n={...o,id:o.id||uid(),numero:$("#of_n").value.trim()||nextOtNumber(),cliente:$("#of_c").value.trim(),equipo:$("#of_q").value.trim(),descripcion:$("#of_d").value.trim(),especialidad:$("#of_es").value,prioridad:$("#of_p").value,
+      tecnicoId:$("#of_t").value,inicio:ini,fin,horasEst:Number($("#of_he").value)||0,horasReales:Number($("#of_hr").value)||0,estado,cierre,facturable:$("#of_fa").checked,observaciones:$("#of_o").value.trim()};
+    if(S.ots.some(x=>x.numero===n.numero&&x.id!==n.id)){toast(`Ya existe la ${n.numero}.`);return false}
+    const ok=await saveDoc("ots",n);if(ok)toast(isNew?`${n.numero} creada`:`${n.numero} actualizada`);return ok},isNew?"Crear OT":"Guardar cambios",isNew?"":`<button type="button" class="btn danger" data-act="del-ot" data-id="${o.id}" style="margin-right:auto">Eliminar</button>`);
+  const warn=()=>{const t=techById($("#of_t").value);const es=$("#of_es").value;const msgs=[];if(t&&ausente(t.estado))msgs.push(`⚠ ${t.nombre} está en ${t.estado.toLowerCase()}.`);if(t&&es&&t.especialidad!==es)msgs.push(`⚠ La OT requiere ${es} y ${t.nombre.split(" ")[0]} es de ${t.especialidad}.`);
+    if(t&&$("#of_i").value){const tmp={...o,inicio:$("#of_i").value,fin:$("#of_f").value||$("#of_i").value,horasEst:Number($("#of_he").value)||0,tecnicoId:t.id};const wk=mondayOf(pd(tmp.inicio));const others=S.ots.filter(x=>x.tecnicoId===t.id&&x.id!==o.id);let h=hoursIn(tmp,wk,addDays(wk,6),"horasEst");for(const x of others)h+=hoursIn(x,wk,addDays(wk,6),"horasEst");const c=h/(Number(t.horasSemana)||48)*100;if(c>100)msgs.push(`⚠ Con esta OT, ${t.nombre.split(" ")[0]} quedaría al ${pct(c)} de carga esa semana.`)}
+    $("#of_warn").innerHTML=msgs.map(esc).join("<br>");$("#of_warn").style.color="var(--warn)"};
+  ["#of_t","#of_es","#of_i","#of_f","#of_he"].forEach(s=>$(s).addEventListener("change",warn));warn()}
+
+/* ---------- Calendario ---------- */
+function chip(o,day){const t=techById(o.tecnicoId);return`<div class="chip ${o.estado==="Finalizado"?"fin":""} p-${esc(o.prioridad)}" draggable="true" data-chip="${o.id}" data-day="${day}" style="--c:${t?techColor(t.id):"#8a96a3"}" title="${esc(o.numero+" · "+o.cliente+" · "+o.descripcion)}"><span class="ot">${esc(o.numero)}</span><span class="t">${esc(o.equipo||o.cliente)}</span></div>`}
+function vCalendario(){
+  const views=`<div class="seg" data-seg="cal">${["dia","semana","mes"].map(k=>`<button type="button" data-v="${k}" class="${UI.calView===k?"on":""}">${k==="dia"?"Día":k[0].toUpperCase()+k.slice(1)}</button>`).join("")}</div>`;
+  let nav,body;const td=ymd(today());
+  if(UI.calView==="semana"){
+    nav=weekTools();const days=[...Array(6)].map((_,i)=>addDays(UI.week,i));
+    body=`<div class="tbl-wrap"><div class="cal" style="grid-template-columns:170px repeat(6,minmax(100px,1fr))"><div class="ch">Técnico</div>${days.map(d=>`<div class="ch ${ymd(d)===td?"today":""}">${DIAS[(d.getDay()+6)%7]} ${fmtShort(d)}</div>`).join("")}
+    ${sortedTechs().map(t=>{const wk=techStats(t,UI.week,addDays(UI.week,6));return`<div class="rh"><span class="tech-name"><span class="av" style="--c:${techColor(t.id)}">${esc(initials(t.nombre))}</span><b>${esc(t.nombre.split(" ")[0])}</b></span><span>${esc(t.especialidad)} · ${wk.cap?pct(wk.carga):esc(t.estado)}</span></div>`+
+      days.map(d=>{const s=ymd(d);const its=S.ots.filter(o=>o.tecnicoId===t.id&&otDays(o).includes(s));const h=hoursOnDay(t.id,d);const cap=capDay(t);const cls=ausente(t.estado)?"off":h>cap?"sat":h>cap*.9?"high":"";
+      return`<div class="cell ${cls}" data-drop-tech="${t.id}" data-drop-day="${s}">${its.map(o=>chip(o,s)).join("")||`<span class="libre">${ausente(t.estado)?esc(t.estado):"Libre"}</span>`}${h?`<span class="h">${h1(h)} h</span>`:""}</div>`}).join("")}).join("")}
+    ${(()=>{const un=S.ots.filter(o=>!techById(o.tecnicoId)&&overlaps(o,UI.week,addDays(UI.week,6)));return un.length?`<div class="rh"><b>Sin asignar</b><span>${un.length} OT</span></div>`+days.map(d=>{const s=ymd(d);return`<div class="cell" data-drop-tech="" data-drop-day="${s}">${un.filter(o=>otDays(o).includes(s)).map(o=>chip(o,s)).join("")}</div>`}).join(""):""})()}
+    </div></div>`;
+  }else if(UI.calView==="mes"){
+    const m=UI.calMonth;const start=mondayOf(m);const end=new Date(m.getFullYear(),m.getMonth()+1,0);const cells=[];for(let d=new Date(start);d<=end||cells.length%7;d=addDays(d,1))cells.push(new Date(d));
+    nav=`<div class="week-nav"><button class="btn sm" data-act="prev-month" aria-label="Mes anterior">‹</button><span class="lbl">${MESES[m.getMonth()]} ${m.getFullYear()}</span><button class="btn sm" data-act="next-month" aria-label="Mes siguiente">›</button></div>
+      <select id="calTech" aria-label="Filtrar técnico"><option value="">Todos los técnicos</option>${sortedTechs().map(t=>`<option value="${t.id}" ${UI.calTech===t.id?"selected":""}>${esc(t.nombre)}</option>`).join("")}</select>`;
+    body=`<div class="tbl-wrap"><div class="month">${DIAS.map(d=>`<div class="ch" style="background:var(--surface-2);padding:8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line);border-right:1px solid var(--line)">${d}</div>`).join("")}
+    ${cells.map(d=>{const s=ymd(d);const its=S.ots.filter(o=>(!UI.calTech||o.tecnicoId===UI.calTech)&&otDays(o).includes(s));const show=its.slice(0,5);return`<div class="md ${d.getMonth()!==m.getMonth()?"out":""} ${s===td?"today":""}" data-drop-day="${s}" ${UI.calTech?`data-drop-tech="${UI.calTech}"`:""}><span class="dn">${d.getDate()}</span>${show.map(o=>chip(o,s)).join("")}${its.length>5?`<span class="muted" style="font-size:12px">+${its.length-5} más</span>`:""}</div>`}).join("")}</div></div>`;
+  }else{
+    const d=UI.calDay;const s=ymd(d);
+    nav=`<div class="week-nav"><button class="btn sm" data-act="prev-day" aria-label="Día anterior">‹</button><span class="lbl">${DIAS[(d.getDay()+6)%7]} ${fmtD(s)}</span><button class="btn sm" data-act="next-day" aria-label="Día siguiente">›</button><button class="btn sm" data-act="today-day">Hoy</button></div>`;
+    body=`<div class="grid g3">${sortedTechs().map(t=>{const its=S.ots.filter(o=>o.tecnicoId===t.id&&otDays(o).includes(s));const h=hoursOnDay(t.id,d);const cap=capDay(t);const cls=ausente(t.estado)?"off":h>cap?"sat":h>cap*.9?"high":"";
+      return`<div class="panel cell ${cls}" style="min-height:120px;border-radius:8px" data-drop-tech="${t.id}" data-drop-day="${s}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">${techCell(t.id)}<span class="muted" style="font-variant-numeric:tabular-nums">${h1(h)} / ${h1(cap)} h</span></div>${its.map(o=>chip(o,s)).join("")||`<span class="libre">${ausente(t.estado)?esc(t.estado):"Libre"}</span>`}</div>`}).join("")}</div>`;
+  }
+  return head("Calendario de taller","Arrastra una OT a otra celda para cambiar técnico o fecha. Toca una OT para editarla.",views)+`<div class="filters">${nav}<button class="btn primary" data-act="new-ot" style="margin-left:auto">+ Nueva OT</button></div>`+body+
+  `<div class="legend"><span><i style="background:var(--surface)"></i>Carga normal</span><span><i style="background:var(--warn-soft)"></i>Cerca del límite (≥90%)</span><span><i style="background:var(--bad-soft)"></i>Saturado (más horas que su jornada)</span><span><i style="background:var(--surface-2)"></i>Vacaciones o permiso</span><span>Borde rojo inferior = prioridad alta</span></div>`}
+AFTER.calendario=()=>{
+  const ct=$("#calTech");if(ct)ct.onchange=e=>{UI.calTech=e.target.value;render()};
+  document.querySelectorAll("[data-chip]").forEach(c=>{
+    c.addEventListener("dragstart",e=>{UI.drag={id:c.dataset.chip,day:c.dataset.day};e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",c.dataset.chip)}catch(_){}});
+    c.addEventListener("dragend",()=>{UI.drag=null;document.querySelectorAll(".over").forEach(x=>x.classList.remove("over"))});
+    c.addEventListener("click",()=>{const o=S.ots.find(x=>x.id===c.dataset.chip);if(o)otForm(o)})});
+  document.querySelectorAll("[data-drop-day]").forEach(cell=>{
+    cell.addEventListener("dragover",e=>{if(!UI.drag)return;e.preventDefault();cell.classList.add("over")});
+    cell.addEventListener("dragleave",()=>cell.classList.remove("over"));
+    cell.addEventListener("drop",e=>{e.preventDefault();cell.classList.remove("over");if(!UI.drag)return;const o=S.ots.find(x=>x.id===UI.drag.id);if(!o)return;
+      const delta=Math.round((pd(cell.dataset.dropDay)-pd(UI.drag.day))/864e5);const tech=cell.hasAttribute("data-drop-tech")?cell.dataset.dropTech:o.tecnicoId;
+      if(!delta&&tech===o.tecnicoId)return;
+      const n={...o,tecnicoId:tech,inicio:ymd(addDays(pd(o.inicio),delta)),fin:ymd(addDays(pd(o.fin||o.inicio),delta))};
+      const t=techById(tech);UI.drag=null;
+      saveDoc("ots",n).then(ok=>{if(ok)toast(`${o.numero} → ${t?t.nombre.split(" ")[0]:"Sin asignar"}${delta?`, ${delta>0?"+":""}${delta} día${Math.abs(delta)>1?"s":""}`:""}`)})})});
+};
+
+/* ---------- Carga de trabajo ---------- */
+function vCarga(){
+  const from=UI.week,to=addDays(UI.week,6);const st=allStats(from,to);
+  const tot=k=>st.reduce((a,s)=>a+(isFinite(s[k])?s[k]:0),0);
+  return head("Indicador de carga de trabajo","Calculado automáticamente para la semana seleccionada",weekTools())+`
+  <div class="tbl-wrap"><table><thead><tr><th>Técnico</th><th class="n">Actividades</th><th class="n">Horas programadas</th><th class="n">Horas trabajadas</th><th class="n">Productivas</th><th class="n">Improductivas</th><th class="n">Capacidad</th><th style="min-width:180px">Carga</th></tr></thead><tbody>
+  ${st.map(s=>{const c=isFinite(s.carga)?s.carga:100;return`<tr><td>${techCell(s.t.id)}</td><td class="n">${s.actividades}</td><td class="n">${h1(s.prog)} h</td><td class="n">${h1(s.trab)} h</td><td class="n">${h1(s.prod)} h</td><td class="n">${h1(s.improd)} h</td><td class="n">${s.cap?h1(s.cap)+" h":esc(s.t.estado)}</td>
+  <td><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="flex:1"><i class="${cargaClass(s.carga)}" style="width:${Math.min(100,c)}%"></i></div><b style="min-width:44px;text-align:right;font-variant-numeric:tabular-nums">${s.cap?pct(s.carga):"—"}</b></div></td></tr>`}).join("")}
+  <tr><td><b>Total taller</b></td><td class="n"><b>${tot("actividades")}</b></td><td class="n"><b>${h1(tot("prog"))} h</b></td><td class="n"><b>${h1(tot("trab"))} h</b></td><td class="n"><b>${h1(tot("prod"))} h</b></td><td class="n"><b>${h1(tot("improd"))} h</b></td><td class="n"><b>${h1(tot("cap"))} h</b></td><td><b>${tot("cap")?pct(tot("prog")/tot("cap")*100):"—"}</b></td></tr>
+  </tbody></table></div>
+  <p class="note">Horas programadas: horas estimadas de cada OT repartidas entre sus días hábiles (lunes a sábado) que caen en la semana. Horas trabajadas: horas reales registradas, repartidas igual. Productivas: horas en OT facturables. Improductivas: horas en trabajos internos, capacitación o espera (OT marcadas como no facturables).</p>
+  <div class="panel" style="margin-top:14px"><h2>Programadas vs. capacidad</h2><div class="chart-box"><canvas id="cCarga"></canvas></div></div>`}
+AFTER.carga=()=>{const st=allStats(UI.week,addDays(UI.week,6));const base=chartBase();
+  mkChart("cCarga",{type:"bar",data:{labels:st.map(s=>s.t.nombre.split(" ")[0]),datasets:[{label:"Programadas",data:st.map(s=>+s.prog.toFixed(1)),backgroundColor:st.map(s=>s.carga>100?css("--bad"):s.carga>=90?css("--warn"):techColor(s.t.id)),borderRadius:3},{label:"Capacidad",data:st.map(s=>s.cap),backgroundColor:"transparent",borderColor:css("--ink-3"),borderWidth:2,borderDash:[4,3],type:"bar"}]},options:{...base,plugins:{...base.plugins,legend:{display:true,position:"bottom"}},scales:{...base.scales,x:{...base.scales.x,stacked:false},y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>v+" h"}}}}})};
+
+/* ---------- Productividad ---------- */
+function vProductividad(){
+  const {from,to,label}=periodRange(UI.period,UI.periodRef);const st=allStats(from,to);
+  const rank=st.slice().sort((a,b)=>(b.efic??-1)-(a.efic??-1));
+  return head("Comparador de productividad",label,periodTools())+`
+  <div class="grid g3">
+    <div class="panel"><h2>Actividades por técnico</h2><div class="chart-box"><canvas id="cAct"></canvas></div></div>
+    <div class="panel"><h2>Horas trabajadas</h2><div class="chart-box"><canvas id="cHT"></canvas></div></div>
+    <div class="panel"><h2>Eficiencia</h2><div class="chart-box"><canvas id="cEf"></canvas></div></div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h2>Ranking <small>Eficiencia (%) = (Horas estimadas ÷ Horas reales) × 100, sobre OT finalizadas</small></h2>
+  <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Técnico</th><th>Especialidad</th><th class="n">OT finalizadas</th><th class="n">H. estimadas</th><th class="n">H. reales</th><th class="n">Eficiencia</th><th class="n">Cerradas a tiempo</th></tr></thead><tbody>
+  ${rank.map((s,i)=>`<tr><td class="n">${i+1}</td><td>${techCell(s.t.id)}</td><td><span class="tag">${esc(s.t.especialidad)}</span></td><td class="n">${s.finalizadas}</td><td class="n">${h1(s.se)}</td><td class="n">${h1(s.sr)}</td><td class="n"><b style="color:${s.efic==null?"":s.efic>=90?"var(--ok)":s.efic>=75?"var(--warn)":"var(--bad)"}">${pct(s.efic)}</b></td><td class="n">${s.finalizadas?pct(s.aTiempo/s.finalizadas*100):"—"}</td></tr>`).join("")}
+  </tbody></table></div><p class="note">Más de 100% significa que terminó en menos horas de las estimadas. Verde ≥ 90%, ámbar 75–89%, rojo menos de 75%.</p></div>`}
+AFTER.productividad=()=>{const {from,to}=periodRange(UI.period,UI.periodRef);const st=allStats(from,to);const base=chartBase();const L=st.map(s=>s.t.nombre.split(" ")[0]);const C=st.map(s=>techColor(s.t.id));
+  mkChart("cAct",{type:"bar",data:{labels:L,datasets:[{data:st.map(s=>s.finalizadas),backgroundColor:C,borderRadius:3}]},options:base});
+  mkChart("cHT",{type:"bar",data:{labels:L,datasets:[{data:st.map(s=>+s.sr.toFixed(1)),backgroundColor:C,borderRadius:3}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>v+" h"}}}}});
+  mkChart("cEf",{type:"bar",data:{labels:L,datasets:[{data:st.map(s=>s.efic==null?0:Math.round(s.efic)),backgroundColor:st.map(s=>s.efic==null?css("--line"):s.efic>=90?css("--ok"):s.efic>=75?css("--warn"):css("--bad")),borderRadius:3}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,suggestedMax:110,ticks:{...base.scales.y.ticks,callback:v=>v+"%"}}}}})};
+
+/* ---------- Balanceo ---------- */
+let lastBalance=null;
+function vBalanceo(){
+  const from=UI.week,to=addDays(UI.week,6);const b=balance(from,to);lastBalance=b;
+  return head("Balanceo inteligente de trabajo","Detecta sobrecarga y poco trabajo, y propone reasignar OT pendientes",weekTools())+`
+  <div class="grid g2">
+    <div class="panel"><h2>Situación de la semana</h2>${b.alerts.length?b.alerts.map(a=>`<div class="alert ${a.k}">${a.k==="low"?"ⓘ":"⚠"} ${esc(a.txt)}</div>`).join(""):'<p class="muted">Todos los técnicos están entre 50% y 90% de carga.</p>'}
+      <div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>Técnico</th><th class="n">Carga actual</th><th class="n">Con sugerencias</th></tr></thead><tbody>
+      ${b.after.map(a=>`<tr><td>${techCell(a.t.id)}</td><td class="n"><span class="pill ${cargaClass(a.antes)==="bad"?"bad":cargaClass(a.antes)==="warn"?"warn":cargaClass(a.antes)==="low"?"info":"ok"}">${a.cap?pct(a.antes):esc(a.t.estado)}</span></td><td class="n">${a.cap?pct(a.despues):"—"}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="panel"><h2>Sugerencias del sistema</h2>
+      ${b.groups.length?b.groups.map(g=>`<div class="alert low">✓ Reasignar ${g.n} actividad${g.n>1?"es":""} de ${esc(g.from.nombre.split(" ")[0])} a ${esc(g.to.nombre.split(" ")[0])}.</div>`).join("")+`<div style="margin:12px 0"></div>`+
+      b.moves.map((m,i)=>`<div class="sug"><div class="ic">${i+1}</div><div><p>Se recomienda trasladar la <span class="ot">${esc(m.ot.numero)}</span> desde <b>${esc(m.from.nombre.split(" ")[0])}</b> hacia <b>${esc(m.to.nombre.split(" ")[0])}</b> para ${esc(m.motivo)}.</p><div class="meta">${esc(m.ot.descripcion)} · ${esc(m.ot.equipo)} · ${h1(m.h)} h esta semana · ${m.ot.especialidad?esc(m.ot.especialidad)+" → "+esc(m.to.especialidad):"Sin especialidad requerida"}</div></div><div class="act"><button class="btn sm" data-act="apply-move" data-i="${i}">Aplicar</button></div></div>`).join("")+
+      `<div style="margin-top:12px;display:flex;justify-content:flex-end"><button class="btn primary" data-act="apply-all">Aplicar todas (${b.moves.length})</button></div>`
+      :'<p class="muted">No hay reasignaciones recomendadas para esta semana.</p>'}
+      <p class="note">Sólo se mueven OT en estado Pendiente. Se prefiere un técnico de la misma especialidad que requiere la OT; Mecánica General y Diagnóstico se aceptan como apoyo.</p></div>
+  </div>`}
+
+/* ---------- Reportes ---------- */
+function vReportes(){
+  return head("Reportes y exportación","Genera archivos para gerencia, clientes o jefatura de taller")+`
+  <div class="panel" style="margin-bottom:14px"><div class="form-grid">
+    <div class="field"><label for="rp_w">Semana (cualquier día de ella)</label><input type="date" id="rp_w" value="${ymd(UI.week)}"></div>
+    <div class="field"><label for="rp_m">Mes</label><input type="month" id="rp_m" value="${UI.calMonth.getFullYear()}-${pad(UI.calMonth.getMonth()+1)}" style="background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);padding:7px 9px"></div>
+    <div class="field"><label for="rp_el">Elaborado por</label><input type="text" id="rp_el" value="${esc(S.config.elaborado||"")}" placeholder="Nombre de quien elabora"></div>
+    <div class="field"><label for="rp_ap">Aprobado por</label><input type="text" id="rp_ap" value="${esc(S.config.aprobado||"")}" placeholder="Jefe de taller o gerente"></div>
+    <div class="field full"><label for="rp_o">Observaciones para el informe PDF</label><textarea id="rp_o" placeholder="Ej.: Se priorizaron las unidades de Minera Los Pinos por contrato de disponibilidad.">${esc(UI.obs||"")}</textarea></div>
+  </div></div>
+  <div class="grid g3">
+    <div class="panel rep-card"><h2>Reporte semanal</h2><p>Programación de la semana por técnico (OT, actividad, horas), indicadores de carga y eficiencia, con gráfico de horas.</p><div class="tools"><button class="btn primary" data-act="rep" data-k="semana" data-f="pdf">PDF</button><button class="btn" data-act="rep" data-k="semana" data-f="xlsx">Excel</button></div></div>
+    <div class="panel rep-card"><h2>Reporte mensual</h2><p>Resumen del mes por técnico (actividades, horas, eficiencia), OT cerradas, cumplimiento y gráficos.</p><div class="tools"><button class="btn primary" data-act="rep" data-k="mes" data-f="pdf">PDF</button><button class="btn" data-act="rep" data-k="mes" data-f="xlsx">Excel</button></div></div>
+    <div class="panel rep-card"><h2>Reporte individual</h2><p>Por técnico: actividades realizadas, horas trabajadas, productividad y eficiencia del mes elegido.</p>
+      <select id="rp_t" aria-label="Técnico">${sortedTechs().map(t=>`<option value="${t.id}">${esc(t.nombre)}</option>`).join("")}</select>
+      <div class="tools"><button class="btn primary" data-act="rep" data-k="tec" data-f="pdf">PDF</button><button class="btn" data-act="rep" data-k="tec" data-f="xlsx">Excel</button></div></div>
+  </div>
+  <p class="note">Los archivos Excel (.xlsx) se abren en Microsoft Excel y Google Sheets. El PDF lleva los logos de NIMAC CAT y FOTON, y el nombre configurado en Ajustes.</p>`}
+AFTER.reportes=()=>{$("#rp_o").oninput=e=>UI.obs=e.target.value;["el","ap"].forEach(k=>$("#rp_"+k).onchange=e=>saveConfig({...S.config,[k==="el"?"elaborado":"aprobado"]:e.target.value.trim()}))};
+
+/* ---------- Ajustes ---------- */
+function vAjustes(){const c=S.config;
+  return head("Ajustes","Datos de la empresa para los informes y respaldo de la información")+`
+  <div class="grid g2">
+    <div class="panel"><h2>Empresa</h2><div class="form-grid">
+      <div class="field full"><label for="cf_n">Nombre de la empresa o taller</label><input type="text" id="cf_n" value="${esc(c.empresa||"")}"></div>
+      <div class="field full"><label for="cf_l">Logo adicional (opcional, se suma a NIMAC CAT y FOTON)</label><input type="file" id="cf_l" accept="image/png,image/jpeg,image/webp"></div>
+      <div class="full" style="display:flex;gap:12px;align-items:center">${c.logo?`<img src="${esc(c.logo)}" alt="Logo actual" style="max-height:60px;max-width:180px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px"><button class="btn sm danger" data-act="del-logo">Quitar logo</button>`:'<span class="muted">Sin logo cargado.</span>'}</div>
+    </div><div style="margin-top:14px"><button class="btn primary" data-act="save-cfg">Guardar</button></div></div>
+    <div class="panel"><h2>Respaldo</h2><p class="muted" style="margin-top:0">Descarga una copia de todos los técnicos y OT, o restaura una copia anterior.</p>
+      <div class="tools"><button class="btn" data-act="backup">Descargar respaldo (.json)</button><label class="btn" for="cf_imp">Restaurar respaldo</label><input type="file" id="cf_imp" accept="application/json,.json" hidden></div>
+      <h2 style="margin-top:20px">Datos</h2><p class="muted" style="margin-top:0">${S.mode==="db"||S.mode==="supa"?"Los datos se comparten con todas las personas que tienen acceso a esta página y se actualizan en vivo.":"Los datos se guardan sólo en este navegador. Descarga respaldos con frecuencia."}</p>
+      <div class="tools">${S.config.ejemplo?"":`<button class="btn" data-act="load-sample">Cargar datos de ejemplo</button>`}<button class="btn danger" data-act="wipe">Borrar todos los datos</button></div></div>
+  </div>`}
+AFTER.ajustes=()=>{
+  $("#cf_l").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const k=Math.min(1,320/Math.max(img.width,img.height));const cv=document.createElement("canvas");cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);x.drawImage(img,0,0,cv.width,cv.height);
+    saveConfig({...S.config,logo:cv.toDataURL("image/png")}).then(()=>toast("Logo guardado"))};img.src=r.result};r.readAsDataURL(f)};
+  $("#cf_imp").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.tecnicos)||!Array.isArray(d.ots))throw 0;
+    confirmDlg("Restaurar respaldo",`Se agregarán o reemplazarán ${d.tecnicos.length} técnicos y ${d.ots.length} OT con los del archivo.`,"Restaurar",async()=>{await saveMany([...d.tecnicos.map(t=>["tecnicos",t]),...d.ots.map(o=>["ots",o])]);if(d.config)await saveConfig({...d.config,ejemplo:false});toast("Respaldo restaurado")})}catch(_){toast("El archivo no es un respaldo válido.")}};r.readAsText(f)}};
+
+/* ================= Diálogos ================= */
+let dlgSubmit=null;
+function openDlg(title,body,onOk,okLabel="Guardar",extraFoot=""){
+  $("#dlgTitle").innerHTML=title;$("#dlgBody").innerHTML=body;
+  $("#dlgFoot").innerHTML=`${extraFoot}<button type="submit" class="btn" value="cancel">Cancelar</button><button type="button" class="btn primary" id="dlgOk">${okLabel}</button>`;
+  dlgSubmit=onOk;const d=$("#dlg");if(!d.open)d.showModal();
+  $("#dlgOk").onclick=async()=>{$("#dlgOk").disabled=true;const ok=await dlgSubmit();if(ok!==false)d.close();else $("#dlgOk").disabled=false};
+  $("#dlgFoot").querySelectorAll("[data-act]").forEach(b=>b.onclick=e=>{e.preventDefault();act(b)});
+  const first=$("#dlgBody").querySelector("input,select");if(first)first.focus()}
+function confirmDlg(title,msg,okLabel,fn){openDlg(esc(title),`<p style="margin:0">${esc(msg)}</p>`,async()=>{await fn();return true},okLabel)}
+
+/* ================= Acciones ================= */
+function bindCommon(){
+  document.querySelectorAll("#main [data-act]").forEach(b=>b.onclick=e=>{if(b.tagName==="LABEL")return;e.preventDefault();act(b)});
+  document.querySelectorAll("#main [data-seg]").forEach(sg=>sg.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(sg.dataset.seg==="period"){UI.period=b.dataset.v;UI.periodRef=today()}else UI.calView=b.dataset.v;saveUI();render()}))}
+async function act(b){const a=b.dataset.act,id=b.dataset.id;
+  switch(a){
+  case"new-tec":return tecForm();
+  case"edit-tec":return tecForm(techById(id));
+  case"del-tec":{const t=techById(id);const n=S.ots.filter(o=>o.tecnicoId===id&&o.estado!=="Finalizado").length;
+    return confirmDlg("Eliminar técnico",`¿Eliminar a ${t.nombre}?${n?` Sus ${n} OT abiertas quedarán sin asignar.`:""} Las OT finalizadas conservan su historial.`,"Eliminar",async()=>{await saveMany(S.ots.filter(o=>o.tecnicoId===id&&o.estado!=="Finalizado").map(o=>["ots",{...o,tecnicoId:""}]));await delDoc("tecnicos",id);toast("Técnico eliminado")})}
+  case"new-ot":return otForm();
+  case"edit-ot":return otForm(S.ots.find(o=>o.id===id));
+  case"del-ot":{const o=S.ots.find(x=>x.id===id);return confirmDlg("Eliminar OT",`¿Eliminar la ${o.numero} (${o.cliente})? No se puede deshacer.`,"Eliminar",async()=>{await delDoc("ots",id);toast(`${o.numero} eliminada`)})}
+  case"prev-week":UI.week=addDays(UI.week,-7);return render();
+  case"next-week":UI.week=addDays(UI.week,7);return render();
+  case"this-week":UI.week=mondayOf(today());return render();
+  case"prev-month":UI.calMonth=new Date(UI.calMonth.getFullYear(),UI.calMonth.getMonth()-1,1);return render();
+  case"next-month":UI.calMonth=new Date(UI.calMonth.getFullYear(),UI.calMonth.getMonth()+1,1);return render();
+  case"prev-day":UI.calDay=addDays(UI.calDay,UI.calDay.getDay()===1?-2:-1);return render();
+  case"next-day":UI.calDay=addDays(UI.calDay,UI.calDay.getDay()===6?2:1);return render();
+  case"today-day":UI.calDay=today();return render();
+  case"prev-period":UI.periodRef=shiftPeriod(UI.period,UI.periodRef,-1);return render();
+  case"next-period":UI.periodRef=shiftPeriod(UI.period,UI.periodRef,1);return render();
+  case"apply-move":return applyMoves([lastBalance.moves[+b.dataset.i]]);
+  case"apply-all":return applyMoves(lastBalance.moves);
+  case"clear-sample":return confirmDlg("Borrar datos de ejemplo","Se eliminarán todos los técnicos y OT de ejemplo para que cargues tu personal real.","Borrar y empezar",async()=>{await deleteAll();toast("Listo. Agrega tu primer técnico.");location.hash="tecnicos"});
+  case"wipe":return confirmDlg("Borrar todos los datos","Se eliminarán todos los técnicos y todas las OT. Descarga un respaldo antes si lo necesitas.","Borrar todo",async()=>{await deleteAll();toast("Datos borrados")});
+  case"load-sample":{const s=buildSample(today());await saveMany([...s.tecnicos.map(t=>["tecnicos",t]),...s.ots.map(o=>["ots",o])]);await saveConfig({...S.config,ejemplo:true,empresa:S.config.empresa||s.config.empresa});return toast("Datos de ejemplo cargados")}
+  case"save-cfg":await saveConfig({...S.config,empresa:$("#cf_n").value.trim()});return toast("Ajustes guardados");
+  case"del-logo":await saveConfig({...S.config,logo:""});return toast("Logo quitado");
+  case"backup":return saveFile(`respaldo-taller-${ymd(today())}.json`,new Blob([JSON.stringify({tecnicos:S.tecnicos,ots:S.ots,config:S.config,fecha:new Date().toISOString()},null,1)],{type:"application/json"}));
+  case"rep":return makeReport(b.dataset.k,b.dataset.f);
+  }}
+
+/* ================= Archivos ================= */
+async function saveFile(filename,blob){
+  try{if(window.claude&&window.claude.use){const dl=await window.claude.use("downloads");if(dl){await dl.save({filename,data:blob});return}}}catch(e){if(e&&e.code==="declined")return;console.warn(e)}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+function reportData(kind){
+  if(kind==="semana"){const w=mondayOf(pd($("#rp_w").value)||UI.week);return{from:w,to:addDays(w,6),titulo:"Reporte semanal",periodo:`Semana del ${fmtD(ymd(w))} al ${fmtD(ymd(addDays(w,6)))}`,slug:"semanal-"+ymd(w)}}
+  const [y,m]=($("#rp_m").value||ymd(today()).slice(0,7)).split("-").map(Number);const a=new Date(y,m-1,1),b=new Date(y,m,0);return{from:a,to:b,titulo:kind==="tec"?"Reporte individual":"Reporte mensual",periodo:MESES[m-1]+" "+y,slug:(kind==="tec"?"individual-":"mensual-")+y+"-"+pad(m)}}
+function chartImage(cfg,w=900,h=380){if(!window.Chart)return null;const cv=document.createElement("canvas");cv.width=w;cv.height=h;const ctx=cv.getContext("2d");
+  const ch=new Chart(ctx,{...cfg,options:{...cfg.options,responsive:false,animation:false,devicePixelRatio:1},plugins:[{id:"bg",beforeDraw:c=>{c.ctx.save();c.ctx.fillStyle="#fff";c.ctx.fillRect(0,0,c.width,c.height);c.ctx.restore()}}]});
+  const url=cv.toDataURL("image/jpeg",0.9);ch.destroy();return url}
+function pdfChartOpts(){return{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:"#333",font:{size:20}}},y:{beginAtZero:true,grid:{color:"#ddd"},ticks:{color:"#333",font:{size:18}}}}}}
+async function makeReport(kind,fmt){
+  if(!window.XLSX&&fmt==="xlsx"||!window.jspdf&&fmt==="pdf"){toast("No se pudo cargar el generador de archivos. Revisa tu conexión.");return}
+  const R=reportData(kind);const {from,to}=R;const empresa=S.config.empresa||"Taller";
+  let techs=sortedTechs();if(kind==="tec"){const t=techById($("#rp_t").value);if(!t){toast("Primero agrega un técnico.");return}techs=[t]}
+  const st=techs.map(t=>techStats(t,from,to));
+  const ots=S.ots.filter(o=>overlaps(o,from,to)&&techs.some(t=>t.id===o.tecnicoId)).sort((a,b)=>(techById(a.tecnicoId)?.nombre||"").localeCompare(techById(b.tecnicoId)?.nombre||"")||a.inicio.localeCompare(b.inicio));
+  const progRows=ots.map(o=>[techById(o.tecnicoId)?.nombre||"Sin asignar",o.numero,o.cliente,o.equipo,o.descripcion,o.prioridad,fmtD(o.inicio),fmtD(o.fin),+hoursIn(o,from,to,"horasEst").toFixed(1),+(Number(o.horasReales)||0).toFixed(1),o.estado]);
+  const resRows=st.map(s=>[s.t.nombre,s.t.especialidad,s.actividades,s.finalizadas,+s.prog.toFixed(1),+s.trab.toFixed(1),+s.prod.toFixed(1),+s.improd.toFixed(1),s.cap?Math.round(s.carga):"—",s.efic==null?"—":Math.round(s.efic)]);
+  const resHead=["Técnico","Especialidad","Actividades","Finalizadas","H. programadas","H. trabajadas","H. productivas","H. improductivas","Carga %","Eficiencia %"];
+  const progHead=["Técnico","N° OT","Cliente","Equipo","Actividad","Prioridad","Inicio","Fin","Horas (periodo)","H. reales","Estado"];
+  const fname=`reporte-${R.slug}${kind==="tec"?"-"+techs[0].nombre.split(" ")[0].toLowerCase():""}`.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9-]/gi,"");
+  if(fmt==="xlsx"){const wb=XLSX.utils.book_new();
+    const sh=(rows,cols)=>{const ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=cols.map(w=>({wch:w}));return ws};
+    const top=[[empresa],[R.titulo+" · "+R.periodo],["Generado: "+fmtD(ymd(today()))],[]];
+    if(kind==="semana")XLSX.utils.book_append_sheet(wb,sh([...top,["Técnico","N° OT","Actividad","Horas"],...ots.map(o=>[techById(o.tecnicoId)?.nombre||"Sin asignar",o.numero,o.descripcion,+hoursIn(o,from,to,"horasEst").toFixed(1)])],[22,10,44,8]),"Programación semanal");
+    if(kind!=="semana")XLSX.utils.book_append_sheet(wb,sh([...top,["Técnico","Actividades","Horas","Eficiencia %"],...st.map(s=>[s.t.nombre,s.finalizadas,+s.sr.toFixed(1),s.efic==null?"—":Math.round(s.efic)])],[22,12,10,12]),kind==="tec"?"Resumen":"Resumen mensual");
+    XLSX.utils.book_append_sheet(wb,sh([...top,resHead,...resRows],[22,18,11,11,14,13,13,15,9,12]),"Indicadores");
+    XLSX.utils.book_append_sheet(wb,sh([...top,progHead,...progRows],[22,10,22,22,40,9,11,11,14,9,12]),"Detalle de OT");
+    const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+    await saveFile(fname+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));return}
+  // PDF — formato de ficha de taller (A4 vertical, cuadrícula de campos, títulos de sección en ámbar, firmas)
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+  const W=210,M=12,CW=W-2*M,AMB=[214,150,0],LN=[60,60,60],GR=[110,110,110];
+  const isoWeek=d=>{const t=new Date(d);t.setDate(t.getDate()+3-((t.getDay()+6)%7));const w1=new Date(t.getFullYear(),0,4);return 1+Math.round(((t-w1)/864e5-3+((w1.getDay()+6)%7))/7)};
+  const numero=kind==="semana"?`RS-${from.getFullYear()}-${pad(isoWeek(from))}`:kind==="mes"?`RM-${from.getFullYear()}-${pad(from.getMonth()+1)}`:`RI-${initials(techs[0].nombre)}-${from.getFullYear()}-${pad(from.getMonth()+1)}`;
+  const titulo=kind==="semana"?["REPORTE SEMANAL","DE TALLER"]:kind==="mes"?["REPORTE MENSUAL","DE TALLER"]:["REPORTE INDIVIDUAL","DE TÉCNICO"];
+  const elab=S.config.elaborado||"",aprob=S.config.aprobado||"";
+  doc.setLineWidth(.25);doc.setDrawColor(...LN);
+  function header(){const y=10,h=26;doc.setDrawColor(...LN);doc.rect(M,y,CW,h);const c1=58,c3=46;doc.line(M+c1,y,M+c1,y+h);doc.line(W-M-c3,y,W-M-c3,y+h);
+    const hN=8.5,wN=hN*LOGOS.dims.nimac[0]/LOGOS.dims.nimac[1];doc.addImage(LOGOS.nimac,"PNG",M+3,y+(h-hN)/2,wN,hN);const hF=13,wF=hF*LOGOS.dims.foton[0]/LOGOS.dims.foton[1];doc.addImage(LOGOS.foton,"PNG",M+3+wN+2,y+(h-hF)/2,Math.min(wF,c1-wN-7),hF);
+    doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(30,30,30);const cx=M+c1+(CW-c1-c3)/2;doc.text(titulo[0],cx,y+11.5,{align:"center"});doc.text(titulo[1],cx,y+17.5,{align:"center"});
+    const rx=W-M-c3+3;const kv=[["N°",numero],["Fecha",fmtD(ymd(today()))],["Unidad",S.config.empresa||"Taller"]];kv.forEach(([k,v],i)=>{doc.setFont("helvetica","normal");doc.setFontSize(6.5);doc.setTextColor(...GR);doc.text(k,rx,y+4.5+i*7.4);doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.setFont("helvetica",i===0?"bold":"normal");doc.text(doc.splitTextToSize(String(v),c3-5)[0],rx,y+8.2+i*7.4)});
+    return y+h+4}
+  // fila de campos con etiqueta pequeña y valor; ws = anchos relativos
+  function fields(y,cells){const ws=cells.map(c=>c.w||1),tw=ws.reduce((a,b)=>a+b,0);doc.setFontSize(8.5);
+    const lines=cells.map((c,i)=>doc.splitTextToSize(String(c.v??"—")||"—",CW*ws[i]/tw-4));const h=Math.max(...lines.map(l=>l.length))*3.8+7;
+    let x=M;cells.forEach((c,i)=>{const w=CW*ws[i]/tw;doc.setDrawColor(...LN);doc.rect(x,y,w,h);doc.setFont("helvetica","normal");doc.setFontSize(6.5);doc.setTextColor(...GR);doc.text(c.l,x+2,y+3.6);doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.setFont("helvetica",c.b?"bold":"normal");doc.text(lines[i],x+2,y+7.6);x+=w});return y+h}
+  function section(y,t){if(y>265){doc.addPage();y=header()}doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(...AMB);doc.text(t,M,y+4);return y+6}
+  const tblOpts={theme:"grid",styles:{fontSize:7.6,cellPadding:1.5,textColor:[30,30,30],lineColor:LN,lineWidth:.2,font:"helvetica"},headStyles:{fillColor:[255,255,255],textColor:[30,30,30],fontStyle:"bold",lineColor:LN,lineWidth:.2},margin:{left:M,right:M,top:40},didDrawPage:d=>{if(d.pageNumber>1&&d.cursor&&d.table&&d.table.startPageNumber!==d.pageNumber)header()}};
+  const tot=k=>st.reduce((a,s)=>a+(isFinite(s[k])?s[k]:0),0);const se=tot("se"),sr=tot("sr"),capT=tot("cap");
+  let y=header();
+  if(kind==="tec"){const t=techs[0],s=st[0];
+    y=fields(y,[{l:"Técnico",v:t.nombre,w:2,b:1},{l:"Especialidad",v:t.especialidad,w:1.3},{l:"Estado",v:t.estado},{l:"Capacidad",v:h1(Number(t.horasSemana)||48)+" h/sem"}]);
+    y=fields(y,[{l:"Periodo",v:R.periodo,w:2},{l:"Actividades",v:s.actividades,w:1.3},{l:"OT finalizadas",v:s.finalizadas},{l:"Cerradas a tiempo",v:s.finalizadas?pct(s.aTiempo/s.finalizadas*100):"—"}]);
+    y=fields(y,[{l:"Horas trabajadas",v:h1(s.trab)+" h",w:2},{l:"Horas productivas",v:h1(s.prod)+" h",w:1.3},{l:"Productividad (carga)",v:s.cap?pct(s.carga):"—"},{l:"Eficiencia",v:pct(s.efic),b:1}]);
+  }else{
+    y=fields(y,[{l:"Elaborado por",v:elab||"—",w:2},{l:"Periodo",v:R.periodo,w:2},{l:"Técnicos",v:techs.length},{l:"Activos",v:techs.filter(t=>!ausente(t.estado)).length}]);
+    y=fields(y,[{l:"Actividades",v:tot("actividades"),w:1},{l:"OT finalizadas",v:tot("finalizadas")},{l:"Horas programadas",v:h1(tot("prog"))+" h"},{l:"Horas trabajadas",v:h1(tot("trab"))+" h"},{l:"Horas facturables",v:h1(tot("prod"))+" h"},{l:"Eficiencia general",v:sr?Math.round(se/sr*100)+"%":"—",b:1}]);
+    y=fields(y,[{l:"Capacidad del taller",v:h1(capT)+" h",w:1},{l:"Carga promedio",v:capT?pct(tot("prog")/capT*100):"—"},{l:"OT abiertas al cierre",v:tot("abiertas")},{l:"Sobrecargados (>100%)",v:st.filter(s=>s.cap&&s.carga>100).map(s=>s.t.nombre.split(" ")[0]).join(", ")||"Ninguno",w:2}]);
+  }
+  y+=4;y=section(y,kind==="tec"?"Actividades del periodo":"Programación");
+  const progBody=ots.map((o,i)=>[i+1,o.numero,...(kind==="tec"?[]:[techById(o.tecnicoId)?.nombre||"Sin asignar"]),o.cliente,o.equipo,o.descripcion,fmtD(o.inicio).slice(0,5),fmtD(o.fin).slice(0,5),h1(hoursIn(o,from,to,"horasEst")),h1(Number(o.horasReales)||0),o.estado]);
+  const progH=["Ítem","N° OT",...(kind==="tec"?[]:["Técnico"]),"Cliente","Equipo","Actividad","Inicio","Fin","H. est.","H. real","Estado"];
+  const minRows=Math.max(0,5-progBody.length);for(let i=0;i<minRows;i++)progBody.push([progBody.length+1,...Array(progH.length-1).fill("")]);
+  doc.autoTable({...tblOpts,startY:y,head:[progH],body:progBody,columnStyles:{0:{halign:"right",cellWidth:10},[progH.length-3]:{halign:"right"},[progH.length-2]:{halign:"right"}}});
+  y=doc.lastAutoTable.finalY+5;
+  if(kind!=="tec"){y=section(y,"Indicadores por técnico");
+    doc.autoTable({...tblOpts,startY:y,head:[["Técnico","Especialidad","Activ.","Final.","H. prog.","H. trab.","H. fact.","Carga","Eficiencia"]],body:st.map(s=>[s.t.nombre,s.t.especialidad,s.actividades,s.finalizadas,h1(s.prog),h1(s.trab),h1(s.prod),s.cap?pct(s.carga):s.t.estado,pct(s.efic)]),
+      foot:[["Total","",tot("actividades"),tot("finalizadas"),h1(tot("prog")),h1(tot("trab")),h1(tot("prod")),capT?pct(tot("prog")/capT*100):"—",sr?Math.round(se/sr*100)+"%":"—"]],footStyles:{fillColor:[255,255,255],textColor:[30,30,30],fontStyle:"bold",lineColor:LN,lineWidth:.2},
+      columnStyles:{2:{halign:"right"},3:{halign:"right"},4:{halign:"right"},5:{halign:"right"},6:{halign:"right"},7:{halign:"right"},8:{halign:"right"}}});
+    y=doc.lastAutoTable.finalY+5;
+    y=section(y,"Especialidades y horas hombre");
+    const esp=ESPECIALIDADES.map(e=>{const ss=st.filter(s=>s.t.especialidad===e);return[e,ss.length,h1(ss.reduce((a,s)=>a+s.prog,0)),h1(ss.reduce((a,s)=>a+s.trab,0))]}).filter(r=>r[1]>0);
+    doc.autoTable({...tblOpts,startY:y,head:[["Especialidad","Personas","HH programadas","HH trabajadas"]],body:esp,foot:[["Total",techs.length,h1(tot("prog")),h1(tot("trab"))]],footStyles:{fillColor:[255,255,255],textColor:[30,30,30],fontStyle:"bold",lineColor:LN,lineWidth:.2},columnStyles:{1:{halign:"right"},2:{halign:"right"},3:{halign:"right"}}});
+    y=doc.lastAutoTable.finalY+5}
+  // Gráficos
+  const L=st.map(s=>s.t.nombre.split(" ")[0]);const cols=st.map(s=>techColor(s.t.id));
+  let g1,g2,t1,t2;
+  if(kind==="tec"){const ms=monthsBack(6);const t=techs[0];const ser=ms.map(m=>techStats(t,m.from,m.to));t1="Horas trabajadas · últimos 6 meses";t2="Eficiencia · últimos 6 meses";
+    g1=chartImage({type:"bar",data:{labels:ms.map(m=>m.label),datasets:[{data:ser.map(s=>+s.trab.toFixed(1)),backgroundColor:"#d69600"}]},options:pdfChartOpts()});
+    g2=chartImage({type:"line",data:{labels:ms.map(m=>m.label),datasets:[{data:ser.map(s=>s.efic==null?null:Math.round(s.efic)),borderColor:"#333",backgroundColor:"#333",pointRadius:4,borderWidth:3}]},options:pdfChartOpts()})}
+  else{t1="Horas trabajadas por técnico";t2=kind==="semana"?"Carga semanal (%)":"Eficiencia (%)";
+    g1=chartImage({type:"bar",data:{labels:L,datasets:[{data:st.map(s=>+s.trab.toFixed(1)),backgroundColor:"#d69600"}]},options:pdfChartOpts()});
+    g2=kind==="semana"?chartImage({type:"bar",data:{labels:L,datasets:[{data:st.map(s=>s.cap?Math.round(s.carga):0),backgroundColor:st.map(s=>s.carga>100?"#c2372f":s.carga>=90?"#d69600":"#555")}]},options:pdfChartOpts()})
+      :chartImage({type:"bar",data:{labels:L,datasets:[{data:st.map(s=>s.efic==null?0:Math.round(s.efic)),backgroundColor:st.map(s=>s.efic==null?"#ccc":s.efic>=90?"#1f8a4c":s.efic>=75?"#d69600":"#c2372f")}]},options:pdfChartOpts()})}
+  const gw=(CW-4)/2,gh=gw*380/900;
+  if(y+gh+12>270){doc.addPage();y=header()}
+  y=section(y,"Gráficos");
+  doc.setDrawColor(...LN);doc.rect(M,y,gw,gh+7);doc.rect(M+gw+4,y,gw,gh+7);doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.setTextColor(30,30,30);doc.text(t1,M+2,y+4);doc.text(t2,M+gw+6,y+4);
+  if(g1)doc.addImage(g1,"JPEG",M+1,y+6,gw-2,gh);if(g2)doc.addImage(g2,"JPEG",M+gw+5,y+6,gw-2,gh);y+=gh+12;
+  // Observaciones
+  const obs=($("#rp_o")?.value||"").trim()||"Sin observaciones.";
+  doc.setFontSize(8.5);const ol=doc.splitTextToSize(obs,CW-4);const oh=ol.length*3.8+4;
+  if(y+oh+45>285){doc.addPage();y=header()}
+  y=section(y,"Observaciones");doc.setDrawColor(...LN);doc.rect(M,y,CW,oh);doc.setFont("helvetica","normal");doc.setTextColor(30,30,30);doc.text(ol,M+2,y+4.6);y+=oh;
+  // Firmas
+  y=Math.max(y+22,y+22);const sw=70;[[M+12,kind==="tec"?techs[0].nombre:elab,kind==="tec"?"Técnico":"Elaborado por"],[W-M-12-sw,aprob,"Aprobado por"]].forEach(([x,n,l])=>{doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(30,30,30);if(n)doc.text(n,x+sw/2,y-1.5,{align:"center"});doc.setDrawColor(...LN);doc.line(x,y,x+sw,y);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text(l,x+sw/2,y+4.5,{align:"center"})});
+  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(...GR);doc.text(`Control de Técnicos · ${S.config.empresa||"Taller"} · ${numero}`,W-M,290,{align:"right"});doc.text(`${i}/${pages}`,M,290)}
+  await saveFile((numero+(kind==="tec"?"-"+techs[0].nombre.split(" ")[0]:"")).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9-]/gi,"")+".pdf",doc.output("blob"))}
+
+/* ================= Arranque ================= */
+const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",()=>render());
+new MutationObserver(()=>render()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+init();
+</script>
+
+</html>
